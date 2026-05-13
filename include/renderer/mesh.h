@@ -1,0 +1,31 @@
+#ifndef MESH_H
+#define MESH_H
+
+#include <iostream>
+#include <fstream>
+#include <vector>
+
+#include "vertex.h"
+#include "texture.h"
+#include "helpers.h"
+
+class Mesh{
+    public:
+        vec4 *positions;
+        vec3 *normals;
+        vec2 *uvs;
+        vec3 *indices;
+
+        int vert_count;
+        int index_count;
+
+        Texture tex;
+
+        Mesh(vec4 *p_positions, vec3 *normals, vec2 *uvs, vec3 *p_indices, int p_vertcount, int p_indexcount);
+        Mesh(const std::string &filename);
+        Mesh();
+
+        void LinkTexture(Texture p_tex);
+};
+
+#endif
