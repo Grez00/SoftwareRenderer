@@ -33,3 +33,15 @@ vec3 BlinnPhongShader::Evaluate(vertex v, vec3 tex_col){
     vec3 col = ambient + diffuse + specular;
     return col;
 }
+
+TextureShader::TextureShader() {}
+vec3 TextureShader::Evaluate(vertex v, vec3 tex_col){
+    return tex_col;
+}
+
+ColorShader::ColorShader(vec3 p_col){
+    col = p_col;
+}
+vec3 ColorShader::Evaluate(vertex v, vec3 tex_col){
+    return col;
+}

@@ -4,8 +4,7 @@
 #include <math.h>
 
 #include "stb_image.h"
-#include "vec2.h"
-#include "vec3.h"
+#include "vectors.h"
 
 class Texture{
     public:

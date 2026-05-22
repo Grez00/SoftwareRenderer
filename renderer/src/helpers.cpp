@@ -17,3 +17,7 @@ std::vector<std::string> split(std::string s, const std::string& delimiter) {
 float clamp(float v, float lo, float hi){
     return std::max(std::min(v, hi), lo);
 }
+
+int clamp(int v, int lo, int hi){
+    return std::max(std::min(v, hi), lo);
+}

@@ -24,7 +24,7 @@ void FrameBuffer::Clear(vec3 clear_col){
     for (int i = 0; i < h; i++){
         for (int j = 0; j < w; j++){
             render_buffer[j][i] = clear_col;
-            depth_buffer[j][i] = 9999999.9f;
+            depth_buffer[j][i] = 99999999.9f;
         }
     }
 }

@@ -4,8 +4,7 @@
 #include <math.h>
 
 #include "mat4.h"
-#include "vec3.h"
-#include "vec4.h"
+#include "vectors.h"
 
 typedef struct mat3 {
     float cells[3][3];

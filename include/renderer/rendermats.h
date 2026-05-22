@@ -2,9 +2,7 @@
 #define RENDERMATS_H
 
 #include "mat4.h"
-#include "vec2.h"
-#include "vec3.h"
-#include "vec4.h"
+#include "vectors.h"
 #include <math.h>
 
 mat4 GetCOCMatrix(vec3 u, vec3 v, vec3 w, vec3 p);

@@ -1,9 +1,7 @@
 #ifndef VERTEX_H
 #define VERTEX_H
 
-#include "vec2.h"
-#include "vec3.h"
-#include "vec4.h"
+#include "vectors.h"
 
 typedef struct vertex{
     vec4 position;

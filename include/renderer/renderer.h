@@ -4,6 +4,7 @@
 #include "camera.h"
 #include "drawing.h"
 #include "framebuffer.h"
+#include "geometry.h"
 #include "helpers.h"
 #include "light.h"
 #include "mat3.h"
@@ -16,9 +17,7 @@
 #include "texture.h"
 #include "transformation.h"
 #include "triangles.h"
-#include "vec2.h"
-#include "vec3.h"
-#include "vec4.h"
+#include "vectors.h"
 #include "vertex.h"
 
 #endif

@@ -35,7 +35,7 @@ vec4 BarycentricCoords(vec2 p, Triangle2D tri){
     );
 }
 
-vec4 GetBoundingBox(Triangle2D tri){
+vec4 GetBoundingBox(Triangle2D tri, int w, int h){
     vec3 po = tri.vertices[0].position;
     vec3 p1 = tri.vertices[1].position;
     vec3 p2 = tri.vertices[2].position;
@@ -45,18 +45,21 @@ vec4 GetBoundingBox(Triangle2D tri){
     float xmax = (po.x > p1.x) ? ((po.x > p2.x) ? po.x : p2.x) : ((p1.x > p2.x) ? p1.x : p2.x);
     float ymax = (po.y > p1.y) ? ((po.y > p2.y) ? po.y : p2.y) : ((p1.y > p2.y) ? p1.y : p2.y);
 
+    xmin = std::max(xmin, 0.0f);
+    ymin = std::max(ymin, 0.0f);
+    xmax = std::min(xmax, w-1.0f);
+    ymax = std::min(ymax, h-1.0f);
+
     return vec4(xmin, ymin, xmax, ymax);
 }
 
 void RasterizeTriangle(Triangle2D tri, FrameBuffer buffer, Texture tex, Shader shader){
-    vec4 bb = GetBoundingBox(tri);
+    vec4 bb = GetBoundingBox(tri, buffer.w, buffer.h);
 
     for (int i = bb.y; i < bb.w; i++){
         for (int j = bb.x; j < bb.z; j++){
-            if (buffer.IsOOB(vec2(j, i))) continue;
-
             vec4 bcc = BarycentricCoords(vec2(j, i), tri);
-            if (bcc.w > 0.0f && bcc.x > 0.0f && bcc.y > 0.0f && bcc.z > 0.0f && 1.0f - (bcc.x + bcc.y + bcc.z) < 0.001f){
+            if (bcc.x > 0.0f && bcc.y > 0.0f && bcc.z > 0.0f && 1.0f - (bcc.x + bcc.y + bcc.z) < 0.001f){
                 vec3 z_values = vec3(tri.vertices[0].position.z, tri.vertices[1].position.z, tri.vertices[2].position.z);
                 float depth = 1.0f/(
                     (1.0f/z_values.x) * bcc.x + 
@@ -80,7 +83,7 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer buffer, Texture tex, Shader s
     }
 }
 
-void RasterizeLineLow(vec3 a, vec3 b, FrameBuffer buffer){
+void RasterizeLineLow(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
     int dx = b.x - a.x;
     int dy = b.y - a.y;
 
@@ -93,7 +96,7 @@ void RasterizeLineLow(vec3 a, vec3 b, FrameBuffer buffer){
     int y = a.y;
     int D = 2*dy - dx;
     for (int x = a.x; x < b.x; x++){
-        buffer.render_buffer[x][y] = vec3(255.0f, 255.0f, 255.0f);
+        if (!buffer.IsOOB(vec2(x, y))) buffer.render_buffer[x][y] = col;
         if (D > 0){
             y += deltay;
             D += 2*(dy - dx);
@@ -104,7 +107,7 @@ void RasterizeLineLow(vec3 a, vec3 b, FrameBuffer buffer){
     }
 }
 
-void RasterizeLineHigh(vec3 a, vec3 b, FrameBuffer buffer){
+void RasterizeLineHigh(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
     int dx = b.x - a.x;
     int dy = b.y - a.y;
 
@@ -117,7 +120,7 @@ void RasterizeLineHigh(vec3 a, vec3 b, FrameBuffer buffer){
     int x = a.x;
     int D = 2*dx - dy;
     for (int y = a.y; y < b.y; y++){
-        buffer.render_buffer[x][y] = vec3(255.0f, 255.0f, 255.0f);
+        if (!buffer.IsOOB(vec2(x, y))) buffer.render_buffer[x][y] = col;
         if (D > 0){
             x += deltax;
             D += 2*(dx - dy);
@@ -128,21 +131,21 @@ void RasterizeLineHigh(vec3 a, vec3 b, FrameBuffer buffer){
     }
 }
 
-void RasterizeLine(vec3 a, vec3 b, FrameBuffer buffer){
+void RasterizeLine(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
     if (abs(b.y - a.y) < abs(b.x - a.x)){
         if (a.x > b.x){
-            RasterizeLineLow(b, a, buffer);
+            RasterizeLineLow(b, a, buffer, col);
         }
         else{
-            RasterizeLineLow(a, b, buffer);
+            RasterizeLineLow(a, b, buffer, col);
         }
     }
     else{
         if (a.y > b.y){
-            RasterizeLineHigh(b, a, buffer);
+            RasterizeLineHigh(b, a, buffer, col);
         }
         else{
-            RasterizeLineHigh(a, b, buffer);
+            RasterizeLineHigh(a, b, buffer, col);
         }
     }
 }

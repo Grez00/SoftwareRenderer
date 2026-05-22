@@ -2,9 +2,7 @@
 #define TRANSFORMATION_H
 
 #include "mat4.h"
-#include "vec4.h"
-#include "vec3.h"
-#include "vec2.h"
+#include "vectors.h"
 #include <math.h>
 
 mat4 GetTranslationMatrix(vec3 offset = vec3(0.0f, 0.0f, 0.0f));
