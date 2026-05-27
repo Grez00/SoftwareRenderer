@@ -6,6 +6,7 @@
 #include "triangles.h"
 #include "renderinfo.h"
 #include "shader.h"
+#include "geometry.h"
 
 #include <math.h>
 

@@ -35,6 +35,7 @@ vec4 cross(vec4 v1, vec4 v2);
 float length(vec4 v);
 vec4 normalize(vec4 v);
 float distance(vec4 v1, vec4 v2);
+vec4 abs(vec4 v);
 
 // VECTOR 3
 
@@ -68,6 +69,7 @@ vec3 cross(vec3 v1, vec3 v2);
 float length(vec3 v);
 vec3 normalize(vec3 v);
 float distance(vec3 v1, vec3 v2);
+vec3 abs(vec3 v);
 
 // VECTOR2
 
@@ -105,6 +107,7 @@ float length(vec2 v);
 vec2 normalize(vec2 v);
 float distance(vec2 v1, vec2 v2);
 float cross(vec2 v1, vec2 v2);
+vec2 abs(vec2 v);
 
 // HELPERS
 

@@ -65,7 +65,7 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer buffer, Texture tex, Shader s
                     (1.0f/z_values.x) * bcc.x + 
                     (1.0f/z_values.y) * bcc.y + 
                     (1.0f/z_values.z) * bcc.z);
-
+                
                 if (depth < buffer.depth_buffer[j][i]){
                     vec3 normal = 
                         (tri.vertices[0].normal/z_values.x * bcc.x +
@@ -96,7 +96,9 @@ void RasterizeLineLow(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
     int y = a.y;
     int D = 2*dy - dx;
     for (int x = a.x; x < b.x; x++){
-        if (!buffer.IsOOB(vec2(x, y))) buffer.render_buffer[x][y] = col;
+        if (buffer.IsOOB(vec2(x, y))) continue;
+
+        buffer.render_buffer[x][y] = col;
         if (D > 0){
             y += deltay;
             D += 2*(dy - dx);
@@ -120,7 +122,9 @@ void RasterizeLineHigh(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
     int x = a.x;
     int D = 2*dx - dy;
     for (int y = a.y; y < b.y; y++){
-        if (!buffer.IsOOB(vec2(x, y))) buffer.render_buffer[x][y] = col;
+        if (buffer.IsOOB(vec2(x, y))) continue;
+
+        buffer.render_buffer[x][y] = col;
         if (D > 0){
             x += deltax;
             D += 2*(dx - dy);

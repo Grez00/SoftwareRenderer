@@ -20,8 +20,10 @@ Texture::Texture(){
 }
 
 vec3 Texture::sample(vec2 uv){
+    if (w == 0 || h == 0) return vec3(1, 0, 1);
+
     vec2 repeat_uv = vec2(uv.x - floor(uv.x), uv.y - floor(uv.y));
-    return image[int(repeat_uv.x*float(w))][int(repeat_uv.y*float(h))];
+    return image[int(repeat_uv.x*float(w-1))][int(repeat_uv.y*float(h-1))];
 }
 
 vec3 **Texture::loadimage(const std::string &path, int &width, int &height){

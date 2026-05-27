@@ -105,6 +105,10 @@ float cross(vec2 v1, vec2 v2){
     return v1.x*v2.y - v1.y*v2.x;
 }
 
+vec2 abs(vec2 v){
+    return vec2(abs(v.x), abs(v.y));
+}
+
 // VECTOR 3
 
 vec3::vec3(float pX, float pY, float pZ){
@@ -205,6 +209,10 @@ float distance(vec3 v1, vec3 v2){
     return length(difference);
 }
 
+vec3 abs(vec3 v){
+    return vec3(abs(v.x), abs(v.y), abs(v.z));
+}
+
 // VECTOR 4
 
 vec4::vec4(float pX, float pY, float pZ, float pW){
@@ -300,6 +308,10 @@ vec4 normalize(vec4 v){
 float distance(vec4 v1, vec4 v2){
     vec4 difference = v1 - v2;
     return length(difference);
+}
+
+vec4 abs(vec4 v){
+    return vec4(abs(v.x), abs(v.y), abs(v.z), abs(v.w));
 }
 
 // HELPERS

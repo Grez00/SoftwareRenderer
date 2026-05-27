@@ -8,6 +8,7 @@
 #include "vertex.h"
 #include "texture.h"
 #include "helpers.h"
+#include "geometry.h"
 
 class Mesh{
     public:
@@ -26,6 +27,7 @@ class Mesh{
         Mesh();
 
         void LinkTexture(Texture p_tex);
+        sphere GetBoundingSphere();
 };
 
 #endif

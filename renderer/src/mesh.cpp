@@ -45,20 +45,47 @@ Mesh::Mesh(const std::string &filename){
             std::vector<std::string> face_tokens;
             for (int i = 1; i < 4; i++){
                 face_tokens = split(tokens[i], "/");
-                seen_indices.push_back(vec3(std::stof(face_tokens[0])-1, std::stof(face_tokens[1])-1, std::stof(face_tokens[2])-1));
+                switch (face_tokens.size()){
+                    case 3:
+                        seen_indices.push_back(vec3(std::stof(face_tokens[0])-1, std::stof(face_tokens[1])-1, std::stof(face_tokens[2])-1));
+                        break;
+                    case 2:
+                        seen_indices.push_back(vec3(std::stof(face_tokens[0])-1, std::stof(face_tokens[1])-1, 0));
+                        break;
+                    case 1:
+                        seen_indices.push_back(vec3(std::stof(face_tokens[0])-1, 0, 0));
+                        break;
+                    default:
+                        seen_indices.push_back(vec3());
+                        break;
+                }
             }
         }
     }
 
     p_positions = new vec4[seen_pos.size()];
-    p_normals = new vec3[seen_normals.size()];
-    p_uvs = new vec2[seen_uvs.size()];
-    p_indices = new vec3[seen_indices.size()];
-
     std::copy(seen_pos.begin(), seen_pos.end(), p_positions);
-    std::copy(seen_normals.begin(), seen_normals.end(), p_normals);
-    std::copy(seen_uvs.begin(), seen_uvs.end(), p_uvs);
+
+    p_indices = new vec3[seen_indices.size()];
     std::copy(seen_indices.begin(), seen_indices.end(), p_indices);
+
+    if (seen_normals.size() == 0){
+        p_normals = new vec3[1];
+        p_normals[0] = vec3();
+    }
+    else{
+        p_normals = new vec3[seen_normals.size()];
+        std::copy(seen_normals.begin(), seen_normals.end(), p_normals);
+    }
+
+    if (seen_uvs.size() == 0){
+        p_uvs = new vec2[1];
+        p_uvs[0] = vec2();
+    }
+    else{
+        p_uvs = new vec2[seen_uvs.size()];
+        std::copy(seen_uvs.begin(), seen_uvs.end(), p_uvs);
+    }
 
     file.close();
 
@@ -83,4 +110,38 @@ Mesh::Mesh(){
 
 void Mesh::LinkTexture(Texture p_tex){
     tex = p_tex;
+}
+
+sphere Mesh::GetBoundingSphere(){
+    vec3 min = 9999999.9f;
+    vec3 max = -9999999.9f;
+
+    for (int i = 0; i < vert_count; i++){
+        if (positions[i].x < min.x) min.x = positions[i].x;
+        if (positions[i].y < min.y) min.y = positions[i].y;
+        if (positions[i].z < min.z) min.z = positions[i].z;
+
+        if (positions[i].x > max.x) max.x = positions[i].x;
+        if (positions[i].y > max.y) max.y = positions[i].y;
+        if (positions[i].z > max.z) max.z = positions[i].z;
+    }
+    vec3 diff = max - min;
+    vec3 center = (max+min)*0.5f;
+    float radius = std::max(diff.x, std::max(diff.y, diff.z)) / 2.0f;
+
+    float sq_radius = radius*radius;
+    for (int i = 0; i < vert_count; i++){
+        vec3 dir = positions[i] - center;
+        float dist = length(dir);
+        float sq_dist = dist*dist;
+
+        if (sq_dist > sq_radius){
+            float difference = (dist - radius)/2.0f;
+            radius += difference;
+            sq_radius = radius*radius;
+            center += difference * dir;
+        }
+    }
+
+    return sphere(center, radius);
 }

@@ -8,8 +8,10 @@
 const int SCR_WIDTH = 800/4, SCR_HEIGHT = 600/4; // Pixels to render
 const int RENDER_SCALE = 4; // Multiplier for the actual scale of the window
 
-const float MOVE_SPEED = 10.0f;
+const float MOVE_SPEED = 25.0f;
 const float ROTATION_SPEED = 5.0f;
+
+const bool frustum_cull = false;
 
 // Get the time of day in seconds
 double GetCurrentTime(){
@@ -76,13 +78,13 @@ int HandleInput(vec3 &offset, Camera *cam, float delta_time, SDL_Event event){
             } else if (event.key.key == SDLK_T) {
                 cam->forward = vec3(-1, 0, 0);
             } else if (event.key.key == SDLK_LEFT){
-                offset += vec3(-velocity, 0, 0);
-            } else if (event.key.key == SDLK_RIGHT){
                 offset += vec3(velocity, 0, 0);
+            } else if (event.key.key == SDLK_RIGHT){
+                offset += vec3(-velocity, 0, 0);
             } else if (event.key.key == SDLK_UP){
-                offset += vec3(0, velocity, 0);
+                offset += vec3(0, 0, velocity);
             } else if (event.key.key == SDLK_DOWN){
-                offset += vec3(0, -velocity, 0);
+                offset += vec3(0, 0, -velocity);
             }
 
             cam->UpdateVectors();
@@ -117,9 +119,6 @@ int main(int argc, char *argv[]){
     vec4 v1 = vec4(0.5f, -0.5f, 0.0f);
     vec4 v2 = vec4(0.0f, 0.5f, 0.0f);
 
-    // Projection matrix
-    mat4 proj = GetProjectionMatrix(45, 4.0f/3.0f, 0.1f, 100.0f);
-
     // Create Camera
     Camera main_cam = Camera(vec3(0, 24, 0), vec3(0, 0, 1), vec3(0, -1, 0));
     Camera secondary_cam = Camera(vec3(), vec3(0, 1, 0), vec3(0, 0, -1));
@@ -128,20 +127,26 @@ int main(int argc, char *argv[]){
 
     // Load models
     Mesh cube = Mesh("assets/models/cube.obj");
+    Mesh bishop = Mesh("assets/models/bishop.obj");
+    Mesh icosphere = Mesh("assets/models/icosphere.obj");
     Texture tex = Texture("assets/images/worldsky.png");
-    cube.LinkTexture(tex);
 
-    aabb test_box = aabb(vec3(0, 0, -8), vec3(2, 2, 2));
+    cube.LinkTexture(tex);
+    icosphere.LinkTexture(tex);
+    bishop.LinkTexture(tex);
+
+    aabb test_box = aabb(vec3(0, 0, -7), vec3(2, 2, 2));
 
     // Create shaders
-    TextureShader fragment = TextureShader();
+    BlinnPhongShader bp_frag = BlinnPhongShader();
+    TextureShader tex_frag = TextureShader();
 
     ColorShader blue_frag = ColorShader(vec3(0, 0, 1));
     ColorShader red_frag = ColorShader(vec3(1, 0, 0));
     ColorShader green_frag = ColorShader(vec3(0, 1, 0));
 
     Shader shader = Shader();
-    shader.frag = &fragment;
+    shader.frag = &bp_frag;
 
     // Set up time
     double current_time = 0;
@@ -168,11 +173,13 @@ int main(int argc, char *argv[]){
             int fps = int(1.0f/delta_time);
             printf("FPS: %i\n", fps);
 
+            /*
             std::cout << "Camera Position: " << main_cam.position << '\n';
             std::cout << "Camera Right: " << main_cam.right << '\n';
             std::cout << "Camera Up: " << main_cam.up << '\n';
             std::cout << "Camera Forward: " << main_cam.forward << '\n';
             std::cout << "Camera Direction: " << normalize(-main_cam.forward) << '\n';
+            */
 
             seconds++;
         }
@@ -188,22 +195,35 @@ int main(int argc, char *argv[]){
         mat4 cube_model_4 = GetModelMatrix(vec3(-7.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), current_time, vec3(1.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f));
         mat4 line_model = GetRotationMatrix(length(tri_offset), vec3(0, 0, 1));
 
-        mat4 view = secondary_cam.GetViewMatrix();
+        mat4 view = secondary_cam.view;
+        mat4 proj = secondary_cam.proj;
 
         Triangle3D tri = Triangle3D(tri_model * v0, tri_model * v1, tri_model * v2);
 
-        shader.frag = &fragment;
-        DrawMesh(cube, render_buffer, proj * view, cube_model, shader);
-        shader.frag = &blue_frag;
-        DrawMesh(cube, render_buffer, proj * view, cube_model_2, shader);
-        shader.frag = &red_frag;
-        DrawMesh(cube, render_buffer, proj * view, cube_model_3, shader);
-        shader.frag = &green_frag;
-        DrawMesh(cube, render_buffer, proj * view, cube_model_4, shader);
+        line clip_line = line(vec4() + v3tov4(tri_offset, 1), vec4(0, 0, 10) + v3tov4(tri_offset, 1));
         
-        //DrawLine(vec4(), v3tov4(secondary_cam.forward*4.0f, 1.0f), render_buffer, proj * view, vec3(0, 0, 1));
-        //DrawLine(vec4(), v3tov4(secondary_cam.right*4.0f, 1.0f), render_buffer, proj * view, vec3(1, 0, 0));
-        //DrawLine(vec4(), v3tov4(secondary_cam.up*4.0f, 1.0f), render_buffer, proj * view, vec3(0, 1, 0));
+        vec4 a = vec4(clip_line.a.x, clip_line.a.y, clip_line.a.z, clip_line.a.z);
+        vec4 b = vec4(clip_line.b.x, clip_line.b.y, clip_line.b.z, clip_line.b.z);
+        bool clip_result = ClipLine(a, b);
+
+        //DrawLine(clip_line, render_buffer, proj * view, vec3(1, 0, 0));
+        //if (clip_result) DrawLine(vec4(a.x, a.y, a.z, 1.0f), vec4(b.x, b.y, b.z, 1.0f), render_buffer, proj * view, vec3(0, 1, 0));
+
+        //DrawLine(vec4(), vec4(10, 0, 10, 1), render_buffer, proj * view, vec3(0, 0, 1));
+        //DrawLine(vec4(-10, 0, 0, 1), vec4(10, 0, 0, 1), render_buffer, proj * view, vec3(0, 0, 1));
+        //DrawLine(vec4(), vec4(-10, 0, 10, 1), render_buffer, proj * view, vec3(0, 0, 1));
+
+        shader.frag = &bp_frag;
+        DrawMesh(icosphere, render_buffer, proj, view * cube_model, shader);
+        shader.frag = &blue_frag;
+        DrawMesh(bishop, render_buffer, proj, view * cube_model_2, shader);
+        shader.frag = &red_frag;
+        DrawMesh(cube, render_buffer, proj, view * cube_model_3, shader);
+        shader.frag = &green_frag;
+        DrawMesh(cube, render_buffer, proj, view * cube_model_4, shader);
+        
+        //DrawAABB(test_box, render_buffer, proj * view);
+        //DrawFrustum(secondary_cam, render_buffer, proj * view, vec3(0, 0, 1));
 
         // Empty buffer to Renderer
         BlitBuffer(render_buffer, renderer);
