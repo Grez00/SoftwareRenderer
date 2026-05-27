@@ -2,12 +2,14 @@
 
 This is, as you may have guessed, a simple software rendering library. Written in C++. It supports:
 - Rasterizing of lines and triangles
-- Barycentric interpolation
+- Perspective-correct interpolation
 - Texture loading and sampling
 - A depth buffer
 - Mesh loading from .obj files
 - Blinn-Phong lighting
-- A camera class that makes it easy to implement movement
+- Positionable camera
+- Back-face culling
+- Frustum culling
 
 ![Cube](https://github.com/Grez00/SoftwareRenderer/blob/main/media/cube.gif)
 
