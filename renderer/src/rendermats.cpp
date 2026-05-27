@@ -64,7 +64,7 @@ mat4 Get3DWindowingMatrix(vec3 sl, vec3 sh, vec3 el, vec3 eh){
 }
 
 mat4 ViewportMatrix(int w, int h){
-    return Get2DWindowingMatrix(vec2(-1, -1), vec2(1, 1), vec2(-0.5, -0.5), vec2(w - 0.5, h - 0.5));
+    return Get2DWindowingMatrix(vec2(-1, -1), vec2(1, 1), vec2(0, 0), vec2(w - 1, h - 1));
 }
 
 // Projection

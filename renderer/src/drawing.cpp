@@ -13,7 +13,7 @@ vec3 WindowVector(vec4 v, mat4 proj, int w, int h){
     vec4 pos = v;
     pos/=pos.w;
     pos = vp * pos;
-    return vec3(pos.x, pos.y, v.w);
+    return vec3(int(pos.x), int(pos.y), v.w);
 }
 
 vertex2D ProjectVertex(vertex v, mat4 proj, int w, int h){
@@ -172,61 +172,63 @@ int ClipTriangle(Triangle3D *tri, Triangle3D *tri2){
     return ClipTriangle(tri, tri2, aabb(vec3(), vec3(w, w, w)));
 }
 
+enum ClipLineResult{
+    ALL_OUT,
+    A_OUT,
+    B_OUT,
+    ALL_IN
+};
+
+ClipLineResult ClipLineAxis(float a_v, float b_v, vec4 &a, vec4 &b){
+    bool a_in = a.w >= a_v;
+    bool b_in = b.w >= b_v;
+
+    if (!(a_in || b_in)) return ALL_OUT;
+    if (!(a_in && b_in)){
+        float t = (a.w - a_v) / ((a.w - a_v) - (b.w - b_v));
+        vec4 intersection = a*(1.0f-t) + b*t;
+
+        if (a_in){
+            b = intersection;
+            return B_OUT;
+        }
+        else{
+            a = intersection;
+            return A_OUT;
+        }
+    }
+
+    return ALL_IN;
+}
+
 bool ClipLine(vec4 &a, vec4 &b){
-    // Test against w = 0 plane
+    float epsilon = 0.00001f;
 
-    bool a_in = a.w >= 0.0f;
-    bool b_in = b.w >= 0.0f;
+    if (ClipLineAxis(epsilon, epsilon, a, b) == ALL_OUT) return false;
+    if (ClipLineAxis(a.y, b.y, a, b) == ALL_OUT) return false;
+    if (ClipLineAxis(-a.y, -b.y, a, b) == ALL_OUT) return false;
+    if (ClipLineAxis(a.x, b.x, a, b) == ALL_OUT) return false;
+    if (ClipLineAxis(-a.x, -b.x, a, b) == ALL_OUT) return false;
+    if (ClipLineAxis(a.z, b.z, a, b) == ALL_OUT) return false;
+    if (ClipLineAxis(-a.z, -b.z, a, b) == ALL_OUT) return false;
 
-    if (!(a_in || b_in)) return false; // Both are clipped, line discarded
-    if (!(a_in && b_in)){ // One is out, need to clip
-        float t = a.w / (a.w - b.w);
-        vec4 intersection = a*(1.0f-t) + b*t;
-
-        if (a_in) b = intersection;
-        else a = intersection;
-    }
-
-    // Test against w = -x plane
-
-    a_in = a.x >= -a.w;
-    b_in = b.x >= -b.w;
-
-    if (!(a_in || b_in)) return false;
-    if (!(a_in && b_in)){
-        float t = (a.w + a.x) / ((a.w + a.x) - (b.w + b.x));
-        vec4 intersection = a*(1.0f-t) + b*t;
-
-        if (a_in) b = intersection;
-        else a = intersection;
-    }
-
-    // Test against w = x plane
-
-    a_in = a.x <= a.w;
-    b_in = b.x <= b.w;
-
-    if (!(a_in || b_in)) return false;
-    if (!(a_in && b_in)){
-        float t = (a.w - a.x) / ((a.w - a.x) - (b.w - b.x));
-        vec4 intersection = a*(1.0f-t) + b*t;
-
-        if (a_in) b = intersection;
-        else a = intersection;
-    }
-
-    // Passed all tests
-
-    return true;
+    return true; // Passed all tests
 }
 
 // Drawing
+
+void DrawPoint(vec4 v, FrameBuffer buffer, mat4 proj, vec3 col){
+    vec3 v_window = ProjectVector(v, proj, buffer.w, buffer.h);
+    if (buffer.IsOOB(vec2(v_window.x, v_window.y))) return;
+
+    buffer.render_buffer[int(v_window.x)][int(v_window.y)] = col;
+}
 
 void DrawLine(vec4 a, vec4 b, FrameBuffer buffer, mat4 proj, vec3 col){
     vec4 a_proj = proj * a;
     vec4 b_proj = proj * b;
 
-    //if (!ClipLine(a_proj, b_proj)) return;
+    if (!ClipLine(a_proj, b_proj)) return;
 
     vec3 a_window;
     vec3 b_window;
@@ -246,25 +248,25 @@ void DrawQuad(vec4 a, vec4 b, vec4 c, vec4 d, FrameBuffer buffer, mat4 proj, vec
 }
 
 void DrawFrustum(Camera cam, FrameBuffer buffer, mat4 proj, vec3 col){
-    float partial = tan(cam.fov / 2.0f);
+    float partial = tan(M_PI/180.0f * cam.fov/2.0f);
 
     float near_extent_h = partial * cam.near;
     float near_extent_w = near_extent_h * cam.aspect;
     vec3 near_center = cam.position + cam.forward * cam.near;
 
-    vec4 n_a = v3tov4(near_center + near_extent_h - near_extent_w, 1.0f);
-    vec4 n_b = v3tov4(near_center + near_extent_h + near_extent_w, 1.0f);
-    vec4 n_c = v3tov4(near_center - near_extent_h - near_extent_w, 1.0f);
-    vec4 n_d = v3tov4(near_center - near_extent_h + near_extent_w, 1.0f);
+    vec4 n_a = v3tov4(near_center + cam.up * near_extent_h - cam.right * near_extent_w, 1.0f);
+    vec4 n_b = v3tov4(near_center + cam.up * near_extent_h + cam.right * near_extent_w, 1.0f);
+    vec4 n_c = v3tov4(near_center - cam.up * near_extent_h - cam.right * near_extent_w, 1.0f);
+    vec4 n_d = v3tov4(near_center - cam.up * near_extent_h + cam.right * near_extent_w, 1.0f);
 
     float far_extent_h = partial * cam.far;
     float far_extent_w = far_extent_h * cam.aspect;
     vec3 far_center = cam.position + cam.forward * cam.far;
 
-    vec4 f_a = v3tov4(far_center + far_extent_h - far_extent_w, 1.0f);
-    vec4 f_b = v3tov4(far_center + far_extent_h + far_extent_w, 1.0f);;
-    vec4 f_c = v3tov4(far_center - far_extent_h - far_extent_w, 1.0f);;
-    vec4 f_d = v3tov4(far_center - far_extent_h + far_extent_w, 1.0f);;
+    vec4 f_a = v3tov4(far_center + cam.up * far_extent_h - cam.right * far_extent_w, 1.0f);
+    vec4 f_b = v3tov4(far_center + cam.up * far_extent_h + cam.right * far_extent_w, 1.0f);
+    vec4 f_c = v3tov4(far_center - cam.up * far_extent_h - cam.right * far_extent_w, 1.0f);
+    vec4 f_d = v3tov4(far_center - cam.up * far_extent_h + cam.right * far_extent_w, 1.0f);
 
     DrawQuad(n_a, n_b, n_c, n_d, buffer, proj, col);
     DrawQuad(f_a, f_b, f_c, f_d, buffer, proj, col);
@@ -302,8 +304,15 @@ void DrawAABB(aabb a, FrameBuffer buffer, mat4 proj){
 }
 
 void DrawPlane(plane p, FrameBuffer buffer, mat4 proj, vec3 col){
-    vec3 normal_point = p.d + p.n;
-    DrawLine(v3tov4(p.p, 1.0f), vec4(normal_point.x, normal_point.y, normal_point.z, 1.0f), buffer, proj, col);
+    vec3 normal_point = p.p + p.n;
+    DrawLine(v3tov4(p.p, 1.0f), v3tov4(normal_point, 1.0f), buffer, proj, col);
+    DrawPoint(v3tov4(p.p, 1.0f), buffer, proj, vec3(1.0f - col.x, 1.0f - col.y, 1.0f - col.z));
+}
+
+void DrawSphere(sphere s, FrameBuffer buffer, mat4 proj, vec3 col){
+    DrawLine(v3tov4(s.c + vec3(-1, 0, 0) * s.r, 1.0f), v3tov4(s.c + vec3(1, 0, 0) * s.r, 1.0f), buffer, proj, vec3(1, 0, 0));
+    DrawLine(v3tov4(s.c + vec3(0, -1, 0) * s.r, 1.0f), v3tov4(s.c + vec3(0, 1, 0) * s.r, 1.0f), buffer, proj, vec3(0, 1, 0));
+    DrawLine(v3tov4(s.c + vec3(0, 0, -1) * s.r, 1.0f), v3tov4(s.c + vec3(0, 0, 1) * s.r, 1.0f), buffer, proj, vec3(0, 0, 1));
 }
 
 void DrawTriangle(Triangle3D tri, FrameBuffer buffer, mat4 proj, Texture tex, Shader shader){
@@ -313,10 +322,10 @@ void DrawTriangle(Triangle3D tri, FrameBuffer buffer, mat4 proj, Texture tex, Sh
     RasterizeTriangle(WindowTriangle(main_tri, buffer.w, buffer.h), buffer, tex, shader);
 }
 
-void DrawTriangleWireframe(Triangle3D tri, FrameBuffer buffer, mat4 proj){
-    DrawLine(tri.vertices[0].position, tri.vertices[1].position, buffer, proj);
-    DrawLine(tri.vertices[1].position, tri.vertices[2].position, buffer, proj);
-    DrawLine(tri.vertices[2].position, tri.vertices[0].position, buffer, proj);
+void DrawTriangleWireframe(Triangle3D tri, FrameBuffer buffer, mat4 proj, vec3 col){
+    DrawLine(tri.vertices[0].position, tri.vertices[1].position, buffer, proj, col);
+    DrawLine(tri.vertices[1].position, tri.vertices[2].position, buffer, proj, col);
+    DrawLine(tri.vertices[2].position, tri.vertices[0].position, buffer, proj, col);
 }
 
 /*
@@ -356,6 +365,22 @@ void DrawMesh(Mesh mesh, FrameBuffer buffer, mat4 proj, mat4 model, Shader shade
             proj,
             mesh.tex,
             shader
+        );
+    }
+}
+
+void DrawMeshWireframe(Mesh mesh, FrameBuffer buffer, mat4 proj, mat4 model, vec3 col){
+    mat3 id_model = mat3(transpose(inverse(model)));
+    for (int i = 0; i < mesh.index_count; i+=3){
+        DrawTriangleWireframe(
+            Triangle3D(
+                vertex(model * mesh.positions[int(mesh.indices[i].x)], id_model * mesh.normals[int(mesh.indices[i].z)], mesh.uvs[int(mesh.indices[i].y)]), 
+                vertex(model * mesh.positions[int(mesh.indices[i+1].x)], id_model * mesh.normals[int(mesh.indices[i+1].z)], mesh.uvs[int(mesh.indices[i+1].y)]), 
+                vertex(model * mesh.positions[int(mesh.indices[i+2].x)], id_model * mesh.normals[int(mesh.indices[i+2].z)], mesh.uvs[int(mesh.indices[i+2].y)])
+            ), 
+            buffer,
+            proj,
+            col
         );
     }
 }

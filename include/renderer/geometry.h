@@ -17,7 +17,7 @@ struct plane{
     float d;
     plane(vec3 point, vec3 normal);
     plane();
-    bool distance(vec3 q);
+    float distance(vec3 q);
     bool isinside(vec3 q);
     vec3 projectpoint(vec3 q);
 };

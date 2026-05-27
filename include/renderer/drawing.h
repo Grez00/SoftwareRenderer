@@ -29,11 +29,13 @@ void DrawLine(line line, FrameBuffer buffer, mat4 proj, vec3 col = vec3(1, 0, 0)
 void DrawQuad(vec4 a, vec4 b, vec4 c, vec4 d, FrameBuffer buffer, mat4 proj, vec3 col);
 void DrawFrustum(Camera cam, FrameBuffer buffer, mat4 proj, vec3 col);
 void DrawPlane(plane p, FrameBuffer buffer, mat4 proj, vec3 col);
+void DrawSphere(sphere s, FrameBuffer buffer, mat4 proj, vec3 col);
 void DrawTriangle(Triangle3D tri, FrameBuffer buffer, mat4 proj, Texture tex, Shader shader);
-void DrawTriangleWireframe(Triangle3D tri, FrameBuffer buffer, mat4 proj);
+void DrawTriangleWireframe(Triangle3D tri, FrameBuffer buffer, mat4 proj, vec3 col);
 void DrawTriangles(vertex vertices[], int vert_count, RenderInfo render_info);
 void DrawTrianglesIndexed(vertex vertices[], int indices[], int vert_count, int index_count, RenderInfo *render_info);
 void DrawTriangleStrips(vertex vertices[], int vert_count, RenderInfo render_info);
 void DrawMesh(Mesh mesh, FrameBuffer buffer, mat4 proj, mat4 model, Shader shader);
+void DrawMeshWireframe(Mesh mesh, FrameBuffer buffer, mat4 proj, mat4 model, vec3 col);
 
 #endif

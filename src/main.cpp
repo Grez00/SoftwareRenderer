@@ -121,7 +121,8 @@ int main(int argc, char *argv[]){
 
     // Create Camera
     Camera main_cam = Camera(vec3(0, 24, 0), vec3(0, 0, 1), vec3(0, -1, 0));
-    Camera secondary_cam = Camera(vec3(), vec3(0, 1, 0), vec3(0, 0, -1));
+    Camera secondary_cam = Camera(vec3(), vec3(0, 1, 0), vec3(0, 0, -1), 45, 4/3, 0.1f, 20.0f);
+    Camera tertiary_cam = Camera(vec3(), vec3(0, 1, 0), vec3(0, 0, -1));
 
     vec3 tri_offset = vec3();
 
@@ -129,11 +130,13 @@ int main(int argc, char *argv[]){
     Mesh cube = Mesh("assets/models/cube.obj");
     Mesh bishop = Mesh("assets/models/bishop.obj");
     Mesh icosphere = Mesh("assets/models/icosphere.obj");
+    Mesh sphere_mesh = Mesh("assets/models/sphere.obj");
     Texture tex = Texture("assets/images/worldsky.png");
 
     cube.LinkTexture(tex);
     icosphere.LinkTexture(tex);
     bishop.LinkTexture(tex);
+    sphere_mesh.LinkTexture(tex);
 
     aabb test_box = aabb(vec3(0, 0, -7), vec3(2, 2, 2));
 
@@ -189,7 +192,7 @@ int main(int argc, char *argv[]){
 
         // Render geometry
         mat4 tri_model = GetModelMatrix(vec3(0.0f, 0.0f, -2.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), 0, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
-        mat4 cube_model = GetModelMatrix(vec3(0.0f, 0.0f, -7.0f), vec3(1.0f, 1.0f, 1.0f), current_time, vec3(1.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f));
+        mat4 cube_model = GetModelMatrix(vec3(0.0f, 0.0f, -7.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f));
         mat4 cube_model_2 = GetModelMatrix(vec3(0.0f, 0.0f, 7.0f), vec3(1.0f, 1.0f, 1.0f), current_time, vec3(1.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f));
         mat4 cube_model_3 = GetModelMatrix(vec3(7.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), current_time, vec3(1.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f));
         mat4 cube_model_4 = GetModelMatrix(vec3(-7.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), current_time, vec3(1.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f));
@@ -200,26 +203,39 @@ int main(int argc, char *argv[]){
 
         Triangle3D tri = Triangle3D(tri_model * v0, tri_model * v1, tri_model * v2);
 
+        /*
         line clip_line = line(vec4() + v3tov4(tri_offset, 1), vec4(0, 0, 10) + v3tov4(tri_offset, 1));
         
         vec4 a = vec4(clip_line.a.x, clip_line.a.y, clip_line.a.z, clip_line.a.z);
         vec4 b = vec4(clip_line.b.x, clip_line.b.y, clip_line.b.z, clip_line.b.z);
         bool clip_result = ClipLine(a, b);
 
-        //DrawLine(clip_line, render_buffer, proj * view, vec3(1, 0, 0));
-        //if (clip_result) DrawLine(vec4(a.x, a.y, a.z, 1.0f), vec4(b.x, b.y, b.z, 1.0f), render_buffer, proj * view, vec3(0, 1, 0));
+        if (clip_result) DrawLine(vec4(a.x, a.y, a.z, 1.0f), vec4(b.x, b.y, b.z, 1.0f), render_buffer, proj * view, vec3(0, 1, 0));
 
-        //DrawLine(vec4(), vec4(10, 0, 10, 1), render_buffer, proj * view, vec3(0, 0, 1));
-        //DrawLine(vec4(-10, 0, 0, 1), vec4(10, 0, 0, 1), render_buffer, proj * view, vec3(0, 0, 1));
-        //DrawLine(vec4(), vec4(-10, 0, 10, 1), render_buffer, proj * view, vec3(0, 0, 1));
+        DrawLine(vec4(), vec4(10, 0, 10, 1), render_buffer, proj * view, vec3(0, 0, 1));
+        DrawLine(vec4(-10, 0, 0, 1), vec4(10, 0, 0, 1), render_buffer, proj * view, vec3(0, 0, 1));
+        DrawLine(vec4(), vec4(-10, 0, 10, 1), render_buffer, proj * view, vec3(0, 0, 1));
+        */
 
-        shader.frag = &bp_frag;
+        sphere b_s = icosphere.GetBoundingSphere();
+        b_s.c = cube_model * v3tov4(b_s.c, 1.0f);
+        mat4 sphere_model = GetModelMatrix(b_s.c, vec3(b_s.r, b_s.r, b_s.r));
+        //DrawMeshWireframe(sphere_mesh, render_buffer, proj, view * sphere_model, vec3(0, 1, 0));
+
+        if (IsInFrustum(icosphere, secondary_cam, cube_model)) shader.frag = &green_frag;
+        else shader.frag = &red_frag;
         DrawMesh(icosphere, render_buffer, proj, view * cube_model, shader);
-        shader.frag = &blue_frag;
+
+        if (IsInFrustum(bishop, secondary_cam, cube_model_2)) shader.frag = &green_frag;
+        else shader.frag = &red_frag;
         DrawMesh(bishop, render_buffer, proj, view * cube_model_2, shader);
-        shader.frag = &red_frag;
+
+        if (IsInFrustum(cube, secondary_cam, cube_model_3)) shader.frag = &green_frag;
+        else shader.frag = &red_frag;
         DrawMesh(cube, render_buffer, proj, view * cube_model_3, shader);
-        shader.frag = &green_frag;
+
+        if (IsInFrustum(cube, secondary_cam, cube_model_4)) shader.frag = &green_frag;
+        else shader.frag = &red_frag;
         DrawMesh(cube, render_buffer, proj, view * cube_model_4, shader);
         
         //DrawAABB(test_box, render_buffer, proj * view);

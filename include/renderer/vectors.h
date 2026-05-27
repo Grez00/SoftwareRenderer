@@ -18,6 +18,7 @@ struct vec4 {
     vec4 operator/=(const float f);
 
     vec4 operator-();
+    float& operator[](int i);
 };
 
 vec4 operator+(const vec4 &v, float f);
@@ -52,6 +53,7 @@ struct vec3 {
     vec3 operator/=(const float f);
 
     vec3 operator-();
+    float& operator[](int i);
 };
 
 vec3 operator+(const vec3 &v, float f);
@@ -89,6 +91,7 @@ struct vec2 {
     vec2 operator/=(const float f);
 
     vec2 operator-();
+    float& operator[](int i);
 };
 
 vec2 operator+(const vec2 &v, float f);

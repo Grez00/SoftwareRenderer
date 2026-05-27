@@ -96,9 +96,13 @@ void RasterizeLineLow(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
     int y = a.y;
     int D = 2*dy - dx;
     for (int x = a.x; x < b.x; x++){
-        if (buffer.IsOOB(vec2(x, y))) continue;
+        float t = float(x)/b.x;
+        float depth = a.z*(1-t) + b.z*t;
 
-        buffer.render_buffer[x][y] = col;
+        if (depth < buffer.depth_buffer[x][y]){
+            buffer.render_buffer[x][y] = col;
+            buffer.depth_buffer[x][y] = depth;
+        }
         if (D > 0){
             y += deltay;
             D += 2*(dy - dx);
@@ -122,9 +126,13 @@ void RasterizeLineHigh(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
     int x = a.x;
     int D = 2*dx - dy;
     for (int y = a.y; y < b.y; y++){
-        if (buffer.IsOOB(vec2(x, y))) continue;
+        float t = float(y)/b.y;
+        float depth = a.z*(1-t) + b.z*t;
 
-        buffer.render_buffer[x][y] = col;
+        if (depth < buffer.depth_buffer[x][y]){
+            buffer.render_buffer[x][y] = col;
+            buffer.depth_buffer[x][y] = depth;
+        }
         if (D > 0){
             x += deltax;
             D += 2*(dx - dy);

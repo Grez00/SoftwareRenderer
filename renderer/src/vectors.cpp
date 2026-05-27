@@ -47,6 +47,14 @@ vec2 vec2::operator/=(const float f){
 vec2 vec2::operator-(){
     return vec2(-this->x, -this->y);
 }
+float &vec2::operator[](int i){
+    i = i % 2;
+    if (i == 0) return x;
+    if (i == 1) return y;
+
+    printf("vec2: Index out of bounds error\n");
+    exit(-1);
+}
 
 vec2 operator+(const vec2 &v, float f){
     return vec2(v.x + f, v.y + f);
@@ -154,6 +162,15 @@ vec3 vec3::operator/=(const float f){
 vec3 vec3::operator-(){
     return vec3(-this->x, -this->y, -this->z);
 }
+float &vec3::operator[](int i){
+    i = i % 3;
+    if (i == 0) return x;
+    if (i == 1) return y;
+    if (i == 2) return z;
+
+    printf("vec3: Index out of bounds error\n");
+    exit(-1);
+}
 
 vec3 operator+(const vec3 &v, float f){
     return vec3(v.x + f, v.y + f, v.z + f);
@@ -253,6 +270,16 @@ vec4 vec4::operator/=(const float f){
 
 vec4 vec4::operator-(){
     return vec4(-this->x, -this->y, -this->z, -this->w);
+}
+float &vec4::operator[](int i){
+    i = i % 4;
+    if (i == 0) return x;
+    if (i == 1) return y;
+    if (i == 2) return z;
+    if (i == 3) return w;
+
+    printf("vec4: Index out of bounds error\n");
+    exit(-1);
 }
 
 vec4 operator+(const vec4 &v, float f){

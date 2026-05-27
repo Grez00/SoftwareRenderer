@@ -30,8 +30,8 @@ plane::plane(){
     d = dot(n, p);
 }
 
-bool plane::distance(vec3 q){
-    return dot(n, q-d);
+float plane::distance(vec3 q){
+    return dot(n, q-p);
 }
 
 bool plane::isinside(vec3 q){
@@ -69,7 +69,7 @@ frustum::frustum(plane *p_planes){
 }
 
 frustum::frustum(Camera cam){
-    float near_height = tan(cam.fov / 2.0f) * cam.near * 2.0f;
+    float near_height = tan(M_PI/180.0f * cam.fov/2.0f) * cam.near * 2.0f;
     float near_width = near_height * cam.aspect;
     vec3 near_center = cam.position + cam.forward * cam.near;
     vec3 near_normal = cam.forward;
@@ -77,9 +77,9 @@ frustum::frustum(Camera cam){
     vec3 far_center = cam.position + cam.forward * cam.far;
     vec3 far_normal = -cam.forward;
 
-    vec3 left_normal = normalize(cross(cam.up, (near_center - (cam.right * near_width / 2.0f)) - cam.position));
+    vec3 left_normal = -normalize(cross(cam.up, (near_center - (cam.right * near_width / 2.0f)) - cam.position));
     vec3 right_normal = normalize(cross(cam.up, (near_center + (cam.right * near_width / 2.0f)) - cam.position));
-    vec3 top_normal = normalize(cross(cam.right, (near_center + (cam.up * near_height / 2.0f)) - cam.position));
+    vec3 top_normal = -normalize(cross(cam.right, (near_center + (cam.up * near_height / 2.0f)) - cam.position));
     vec3 bottom_normal = normalize(cross(cam.right, (near_center - (cam.up * near_height / 2.0f)) - cam.position));
 
     planes[0] = plane(cam.position, bottom_normal);
@@ -155,9 +155,7 @@ bool PlaneSegmentIntersect(plane p, line l, vec3 &intersect){
 }
 
 bool PlaneSphereIntersect(plane p, sphere s){
-    if (abs(p.distance(s.c)) > s.r) return false;
-
-    return true;
+    return p.distance(s.c) <= s.r;
 }
 
 bool PlaneAABBIntersect(plane p, aabb b){
@@ -171,35 +169,34 @@ bool FrustumSegmentIntersect(frustum f, line l, vec3 &intersect){
     return FrustumSegmentIntersect(f, l.a, l.b, intersect);
 }
 bool FrustumSegmentIntersect(frustum f, vec3 a, vec3 b, vec3 &intersect){
-    bool hit = false;
     intersect = b;
     vec3 temp_intersect = a;
     for (plane p : f.planes){
         if (PlaneSegmentIntersect(p, a, b, temp_intersect)){
-            hit = true;
             if (distance(temp_intersect, a) < distance(intersect, a)){
                 intersect = temp_intersect;
             }
         }
+        else{
+            return false;
+        }
     }
 
-    return hit;
+    return true;
 }
 
 bool FrustumSphereIntersect(frustum f, sphere s){
-    bool hit = false;
     for (plane p : f.planes){
-        if (PlaneSphereIntersect(p, s)) return true;
+        if (p.distance(s.c) <= -s.r) return false;
     }
 
-    return hit;
+    return true;
 }
 
 bool FrustumAABBIntersect(frustum f, aabb box){
-    bool hit = false;
     for (plane p : f.planes){
-        if (PlaneAABBIntersect(p, box)) return true;
+        if (!PlaneAABBIntersect(p, box)) return false;
     }
 
-    return false;
+    return true;
 }
