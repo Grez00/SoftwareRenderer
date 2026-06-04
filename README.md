@@ -8,6 +8,7 @@ This is, as you may have guessed, a simple software rendering library. Written i
 - Mesh loading from .obj files
 - Blinn-Phong lighting
 - Positionable camera
+- Homogenous clipping
 - Back-face culling
 - Frustum culling
 
