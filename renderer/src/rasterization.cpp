@@ -45,11 +45,6 @@ vec4 GetBoundingBox(Triangle2D tri, int w, int h){
     float xmax = (po.x > p1.x) ? ((po.x > p2.x) ? po.x : p2.x) : ((p1.x > p2.x) ? p1.x : p2.x);
     float ymax = (po.y > p1.y) ? ((po.y > p2.y) ? po.y : p2.y) : ((p1.y > p2.y) ? p1.y : p2.y);
 
-    xmin = std::max(xmin, 0.0f);
-    ymin = std::max(ymin, 0.0f);
-    xmax = std::min(xmax, w-1.0f);
-    ymax = std::min(ymax, h-1.0f);
-
     return vec4(xmin, ymin, xmax, ymax);
 }
 
@@ -66,7 +61,7 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer buffer, Texture tex, Shader s
                     (1.0f/z_values.y) * bcc.y + 
                     (1.0f/z_values.z) * bcc.z);
                 
-                if (depth < buffer.depth_buffer[j][i]){
+                if (depth < buffer.ReadDepthBuffer(j, i)){
                     vec3 normal = 
                         (tri.vertices[0].normal/z_values.x * bcc.x +
                         tri.vertices[1].normal/z_values.y * bcc.y +
@@ -75,8 +70,8 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer buffer, Texture tex, Shader s
                         (tri.vertices[0].uv/z_values.x * bcc.x + 
                         tri.vertices[1].uv/z_values.y * bcc.y + 
                         tri.vertices[2].uv/z_values.z * bcc.z) * depth;
-                    if (shader.frag != NULL) buffer.render_buffer[j][i] = shader.frag->Evaluate(vertex(vec4(j, i, depth), normal, uv), tex.sample(uv));
-                    buffer.depth_buffer[j][i] = depth;
+                    if (shader.frag != NULL) buffer.SetRenderBuffer(j, i, shader.frag->Evaluate(vertex(vec4(j, i, depth), normal, uv), tex.sample(uv)));
+                    buffer.SetDepthBuffer(j, i, depth);
                 }
             }
         }
@@ -99,9 +94,9 @@ void RasterizeLineLow(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
         float t = float(x)/b.x;
         float depth = a.z*(1-t) + b.z*t;
 
-        if (depth < buffer.depth_buffer[x][y]){
-            buffer.render_buffer[x][y] = col;
-            buffer.depth_buffer[x][y] = depth;
+        if (depth < buffer.ReadDepthBuffer(x, y)){
+            buffer.SetRenderBuffer(x, y, col);
+            buffer.SetDepthBuffer(x, y, depth);
         }
         if (D > 0){
             y += deltay;
@@ -129,9 +124,9 @@ void RasterizeLineHigh(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
         float t = float(y)/b.y;
         float depth = a.z*(1-t) + b.z*t;
 
-        if (depth < buffer.depth_buffer[x][y]){
-            buffer.render_buffer[x][y] = col;
-            buffer.depth_buffer[x][y] = depth;
+        if (depth < buffer.ReadDepthBuffer(x, y)){
+            buffer.SetRenderBuffer(x, y, col);
+            buffer.SetDepthBuffer(x, y, depth);
         }
         if (D > 0){
             x += deltax;

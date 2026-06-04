@@ -5,11 +5,11 @@
 #include <renderer/renderer.h>
 #include <SDL3/SDL.h>
 
-const int SCR_WIDTH = 800/4, SCR_HEIGHT = 600/4; // Pixels to render
-const int RENDER_SCALE = 4; // Multiplier for the actual scale of the window
+const int SCR_WIDTH = 800/2, SCR_HEIGHT = 600/2; // Pixels to render
+const int RENDER_SCALE = 2; // Multiplier for the actual scale of the window
 
-const float MOVE_SPEED = 25.0f;
-const float ROTATION_SPEED = 5.0f;
+const float MOVE_SPEED = 50.0f;
+const float ROTATION_SPEED = 25.0f;
 
 const bool frustum_cull = false;
 
@@ -22,19 +22,14 @@ double GetCurrentTime(){
 }
 
 // Output the contents of a RenderBuffer to an SDL_Renderer
-void BlitBuffer(FrameBuffer buffer, SDL_Renderer *renderer){
-    for (int i = 0; i < buffer.h; i++){
-        for (int j = 0; j < buffer.w; j++){
-            SDL_SetRenderDrawColor(
-                renderer, 
-                clamp(buffer.render_buffer[j][i].x * 255.0f, 0.0f, 255.0f), 
-                clamp(buffer.render_buffer[j][i].y * 255.0f, 0.0f, 255.0f), 
-                clamp(buffer.render_buffer[j][i].z * 255.0f, 0.0f, 255.0f), 
-                SDL_ALPHA_OPAQUE
-            );
-            SDL_RenderPoint(renderer, j, buffer.h-i);
-        }
-    }
+void BlitBuffer(FrameBuffer buffer, SDL_Texture *sdl_buffer, SDL_Renderer *renderer){
+    void* pixels;
+    int pitch = 0;
+
+    SDL_LockTexture(sdl_buffer, NULL, &pixels, &pitch);
+    memcpy(pixels, buffer.render_buffer, buffer.h * pitch);
+    SDL_UnlockTexture(sdl_buffer);
+    SDL_RenderTexture(renderer, sdl_buffer, NULL, NULL);
 }
 
 void BlitTexture(Texture tex, SDL_Renderer *renderer){
@@ -53,7 +48,7 @@ void BlitTexture(Texture tex, SDL_Renderer *renderer){
     }
 }
 
-int HandleInput(vec3 &offset, Camera *cam, float delta_time, SDL_Event event){
+int HandleInput(vec3 &offset, int &cam_to_use, Camera *cam, float delta_time, SDL_Event event){
     if (SDL_PollEvent(&event)) {
         if (event.type == SDL_EVENT_QUIT){
             return -1;
@@ -78,9 +73,11 @@ int HandleInput(vec3 &offset, Camera *cam, float delta_time, SDL_Event event){
             } else if (event.key.key == SDLK_T) {
                 cam->forward = vec3(-1, 0, 0);
             } else if (event.key.key == SDLK_LEFT){
-                offset += vec3(velocity, 0, 0);
+                cam_to_use = 0;
+                //offset += vec3(-velocity, 0, 0);
             } else if (event.key.key == SDLK_RIGHT){
-                offset += vec3(-velocity, 0, 0);
+                cam_to_use = 1;
+                //offset += vec3(velocity, 0, 0);
             } else if (event.key.key == SDLK_UP){
                 offset += vec3(0, 0, velocity);
             } else if (event.key.key == SDLK_DOWN){
@@ -111,6 +108,17 @@ int main(int argc, char *argv[]){
     }
     SDL_SetRenderScale(renderer, RENDER_SCALE, RENDER_SCALE);
 
+    // Create output texture
+    SDL_Texture *sdl_buffer = SDL_CreateTexture
+    (
+        renderer,
+        SDL_PIXELFORMAT_RGB24,
+        SDL_TEXTUREACCESS_STREAMING, 
+        SCR_WIDTH,
+        SCR_HEIGHT
+    );
+    SDL_SetTextureScaleMode(sdl_buffer, SDL_SCALEMODE_NEAREST);
+
     // Create Frame Buffer
     FrameBuffer render_buffer = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
 
@@ -120,25 +128,32 @@ int main(int argc, char *argv[]){
     vec4 v2 = vec4(0.0f, 0.5f, 0.0f);
 
     // Create Camera
-    Camera main_cam = Camera(vec3(0, 24, 0), vec3(0, 0, 1), vec3(0, -1, 0));
-    Camera secondary_cam = Camera(vec3(), vec3(0, 1, 0), vec3(0, 0, -1), 45, 4/3, 0.1f, 20.0f);
-    Camera tertiary_cam = Camera(vec3(), vec3(0, 1, 0), vec3(0, 0, -1));
+    Camera main_cam = Camera(vec3(0, 24, 0), vec3(0, 0, -1), vec3(0, -1, 0));
+    Camera secondary_cam = Camera(vec3(), vec3(0, 1, 0), vec3(0, 0, -1));
 
-    vec3 tri_offset = vec3();
+    // Create matrices
+    mat4 view = main_cam.view;
+    mat4 proj = main_cam.proj;
 
     // Load models
     Mesh cube = Mesh("assets/models/cube.obj");
     Mesh bishop = Mesh("assets/models/bishop.obj");
     Mesh icosphere = Mesh("assets/models/icosphere.obj");
     Mesh sphere_mesh = Mesh("assets/models/sphere.obj");
-    Texture tex = Texture("assets/images/worldsky.png");
 
+    // Load Textures
+    Texture tex = Texture("assets/images/worldsky.png");
+    Texture magic = Texture("assets/images/magic.jpg");
+
+    // Link Textures
     cube.LinkTexture(tex);
     icosphere.LinkTexture(tex);
     bishop.LinkTexture(tex);
     sphere_mesh.LinkTexture(tex);
 
     aabb test_box = aabb(vec3(0, 0, -7), vec3(2, 2, 2));
+    vec3 tri_offset = vec3();
+    int cam_to_use = 0;
 
     // Create shaders
     BlinnPhongShader bp_frag = BlinnPhongShader();
@@ -164,7 +179,7 @@ int main(int argc, char *argv[]){
     SDL_Event event;
     while(true){
         // Poll for input
-        if (HandleInput(tri_offset, &secondary_cam, delta_time, event) == -1) break;
+        if (HandleInput(tri_offset, cam_to_use, &secondary_cam, delta_time, event) == -1) break;
 
         // Update time
         prev_time = current_time;
@@ -176,14 +191,6 @@ int main(int argc, char *argv[]){
             int fps = int(1.0f/delta_time);
             printf("FPS: %i\n", fps);
 
-            /*
-            std::cout << "Camera Position: " << main_cam.position << '\n';
-            std::cout << "Camera Right: " << main_cam.right << '\n';
-            std::cout << "Camera Up: " << main_cam.up << '\n';
-            std::cout << "Camera Forward: " << main_cam.forward << '\n';
-            std::cout << "Camera Direction: " << normalize(-main_cam.forward) << '\n';
-            */
-
             seconds++;
         }
 
@@ -191,58 +198,61 @@ int main(int argc, char *argv[]){
         render_buffer.Clear(vec3(0, 0, 0));
 
         // Render geometry
-        mat4 tri_model = GetModelMatrix(vec3(0.0f, 0.0f, -2.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), 0, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
-        mat4 cube_model = GetModelMatrix(vec3(0.0f, 0.0f, -7.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f));
-        mat4 cube_model_2 = GetModelMatrix(vec3(0.0f, 0.0f, 7.0f), vec3(1.0f, 1.0f, 1.0f), current_time, vec3(1.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f));
-        mat4 cube_model_3 = GetModelMatrix(vec3(7.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), current_time, vec3(1.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f));
-        mat4 cube_model_4 = GetModelMatrix(vec3(-7.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), current_time, vec3(1.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f));
-        mat4 line_model = GetRotationMatrix(length(tri_offset), vec3(0, 0, 1));
-
-        mat4 view = secondary_cam.view;
-        mat4 proj = secondary_cam.proj;
+        mat4 tri_model = GetModelMatrix(vec3(0.0f, 0.1f, 0.0f) + tri_offset, vec3(5.0f, 5.0f, 5.0f), 0, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
+        mat4 cube_model = GetModelMatrix(vec3(0.0f, 0.0f, -7.0f), vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f));
 
         Triangle3D tri = Triangle3D(tri_model * v0, tri_model * v1, tri_model * v2);
 
+        if (cam_to_use == 0){
+            view = main_cam.view;
+            proj = main_cam.proj;
+        }
+        else{
+            view = secondary_cam.view;
+            proj = secondary_cam.proj;
+        }
+
         /*
-        line clip_line = line(vec4() + v3tov4(tri_offset, 1), vec4(0, 0, 10) + v3tov4(tri_offset, 1));
+        v0 = vec4(-0.5f, 0.0f, -0.5f);
+        v1 = vec4(0.5f, 0.0f, -0.5f);
+        v2 = vec4(0.0f, 0.0f, 0.5f);
+        Triangle3D clip_tri = Triangle3D(tri_model * v0, tri_model * v1, tri_model * v2);
         
-        vec4 a = vec4(clip_line.a.x, clip_line.a.y, clip_line.a.z, clip_line.a.z);
-        vec4 b = vec4(clip_line.b.x, clip_line.b.y, clip_line.b.z, clip_line.b.z);
-        bool clip_result = ClipLine(a, b);
+        clip_tri.vertices[0].position.w = clip_tri.vertices[0].position.z;
+        clip_tri.vertices[1].position.w = clip_tri.vertices[1].position.z;
+        clip_tri.vertices[2].position.w = clip_tri.vertices[2].position.z;
 
-        if (clip_result) DrawLine(vec4(a.x, a.y, a.z, 1.0f), vec4(b.x, b.y, b.z, 1.0f), render_buffer, proj * view, vec3(0, 1, 0));
+        std::vector<Triangle3D> clip_result = ClipTriangle(&clip_tri);
 
-        DrawLine(vec4(), vec4(10, 0, 10, 1), render_buffer, proj * view, vec3(0, 0, 1));
-        DrawLine(vec4(-10, 0, 0, 1), vec4(10, 0, 0, 1), render_buffer, proj * view, vec3(0, 0, 1));
-        DrawLine(vec4(), vec4(-10, 0, 10, 1), render_buffer, proj * view, vec3(0, 0, 1));
+        shader.frag = &green_frag;
+        for (Triangle3D clipped_tri : clip_result){
+            clipped_tri.vertices[0].position.w = 1.0f;
+            clipped_tri.vertices[1].position.w = 1.0f;
+            clipped_tri.vertices[2].position.w = 1.0f;
+
+            DrawTriangle(clipped_tri, render_buffer, proj * view, tex, shader);
+        }
+
+        DrawLine(vec4(), vec4(20, 0, 20, 1), render_buffer, proj * view, vec3(0, 0, 1));
+        DrawLine(vec4(-20, 0, 0, 1), vec4(20, 0, 0, 1), render_buffer, proj * view, vec3(0, 0, 1));
+        DrawLine(vec4(), vec4(-20, 0, 20, 1), render_buffer, proj * view, vec3(0, 0, 1));
         */
+
+        if (cam_to_use == 0){
+            DrawAxes(secondary_cam, render_buffer, proj * view);
+            DrawFrustum(secondary_cam, render_buffer, proj * view, vec3(1, 0, 0));
+        }
 
         sphere b_s = icosphere.GetBoundingSphere();
         b_s.c = cube_model * v3tov4(b_s.c, 1.0f);
         mat4 sphere_model = GetModelMatrix(b_s.c, vec3(b_s.r, b_s.r, b_s.r));
-        //DrawMeshWireframe(sphere_mesh, render_buffer, proj, view * sphere_model, vec3(0, 1, 0));
+        DrawMeshWireframe(sphere_mesh, render_buffer, proj, view * sphere_model, vec3(0, 1, 0));
 
-        if (IsInFrustum(icosphere, secondary_cam, cube_model)) shader.frag = &green_frag;
-        else shader.frag = &red_frag;
+        shader.frag = &bp_frag;
         DrawMesh(icosphere, render_buffer, proj, view * cube_model, shader);
 
-        if (IsInFrustum(bishop, secondary_cam, cube_model_2)) shader.frag = &green_frag;
-        else shader.frag = &red_frag;
-        DrawMesh(bishop, render_buffer, proj, view * cube_model_2, shader);
-
-        if (IsInFrustum(cube, secondary_cam, cube_model_3)) shader.frag = &green_frag;
-        else shader.frag = &red_frag;
-        DrawMesh(cube, render_buffer, proj, view * cube_model_3, shader);
-
-        if (IsInFrustum(cube, secondary_cam, cube_model_4)) shader.frag = &green_frag;
-        else shader.frag = &red_frag;
-        DrawMesh(cube, render_buffer, proj, view * cube_model_4, shader);
-        
-        //DrawAABB(test_box, render_buffer, proj * view);
-        //DrawFrustum(secondary_cam, render_buffer, proj * view, vec3(0, 0, 1));
-
         // Empty buffer to Renderer
-        BlitBuffer(render_buffer, renderer);
+        BlitBuffer(render_buffer, sdl_buffer, renderer);
 
         // Output to screen
         SDL_RenderPresent(renderer);

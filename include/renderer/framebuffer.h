@@ -2,6 +2,7 @@
 #define FRAMEBUFFER_H
 
 #include <math.h>
+#include <cstdint>
 
 #include "vectors.h"
 
@@ -11,11 +12,14 @@ class FrameBuffer{
     public:
         int w;
         int h;
-        vec3** render_buffer;
-        float** depth_buffer;
+        uint8_t* render_buffer;
+        float* depth_buffer;
 
         FrameBuffer(int pW, int pH);
         FrameBuffer();
+        void SetRenderBuffer(int x, int y, vec3 v);
+        void SetDepthBuffer(int x, int y, float d);
+        float ReadDepthBuffer(int x, int y);
         void Clear(vec3 clear_col);
         bool IsOOB(vec2 p);
 };
