@@ -5,8 +5,8 @@
 #include <renderer/renderer.h>
 #include <SDL3/SDL.h>
 
-const int SCR_WIDTH = 800, SCR_HEIGHT = 600; // Pixels to render
-const int RENDER_SCALE = 1; // Multiplier for the actual scale of the window
+const int SCR_WIDTH = 800/2, SCR_HEIGHT = 600/2; // Pixels to render
+const int RENDER_SCALE = 2; // Multiplier for the actual scale of the window
 
 const float MOVE_SPEED = 50.0f;
 const float ROTATION_SPEED = 25.0f;
@@ -73,11 +73,11 @@ int HandleInput(vec3 &offset, int &cam_to_use, Camera *cam, float delta_time, SD
             } else if (event.key.key == SDLK_T) {
                 cam->forward = vec3(-1, 0, 0);
             } else if (event.key.key == SDLK_LEFT){
-                //cam_to_use = 0;
-                offset += vec3(-velocity, 0, 0);
+                cam_to_use = 0;
+                //offset += vec3(-velocity, 0, 0);
             } else if (event.key.key == SDLK_RIGHT){
-                //cam_to_use = 1;
-                offset += vec3(velocity, 0, 0);
+                cam_to_use = 1;
+                //offset += vec3(velocity, 0, 0);
             } else if (event.key.key == SDLK_UP){
                 offset += vec3(0, 0, velocity);
             } else if (event.key.key == SDLK_DOWN){
@@ -127,17 +127,13 @@ int main(int argc, char *argv[]){
     vec4 v1 = vec4(0.5f, -0.5f, 0.0f);
     vec4 v2 = vec4(0.0f, 0.5f, 0.0f);
 
-    vertex2D v3 = vertex2D(vec3(200, 500, 1), vec3(), vec2(0.0f, 0.0f));
-    vertex2D v4 = vertex2D(vec3(600, 500, 1), vec3(), vec2(1.0f, 0.0f));
-    vertex2D v5 = vertex2D(vec3(400, 100, 1), vec3(), vec2(0.5f, 1.0f));
-
     // Create Camera
     Camera main_cam = Camera(vec3(0, 24, 0), vec3(0, 0, -1), vec3(0, -1, 0));
     Camera secondary_cam = Camera(vec3(), vec3(0, 1, 0), vec3(0, 0, -1));
 
     // Create matrices
-    mat4 view = secondary_cam.view;
-    mat4 proj = secondary_cam.proj;
+    mat4 view = main_cam.view;
+    mat4 proj = main_cam.proj;
 
     // Load models
     Mesh cube = Mesh("assets/models/cube.obj");
@@ -147,6 +143,7 @@ int main(int argc, char *argv[]){
 
     // Load Textures
     Texture tex = Texture("assets/images/worldsky.png");
+    Texture magic = Texture("assets/images/magic.jpg");
 
     // Link Textures
     cube.LinkTexture(tex);
@@ -200,14 +197,32 @@ int main(int argc, char *argv[]){
         // Clear buffer
         render_buffer.Clear(vec3(0, 0, 0));
 
-        view = secondary_cam.view;
-        proj = secondary_cam.proj;
-
         // Render geometry
-        mat4 cube_model = GetModelMatrix(vec3(0.0f, 0.0f, -2.5f), vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
+        mat4 tri_model = GetModelMatrix(vec3(0.0f, 0.1f, 0.0f) + tri_offset, vec3(5.0f, 5.0f, 5.0f), 0, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
 
-        shader.frag = &bp_frag;
-        DrawMesh(bishop, render_buffer, proj, view * cube_model, shader);
+        v0 = vec4(-0.5f, 0.0f, -0.5f);
+        v1 = vec4(0.5f, 0.0f, -0.5f);
+        v2 = vec4(0.0f, 0.0f, 0.5f);
+        Triangle3D clip_tri = Triangle3D(tri_model * v0, tri_model * v1, tri_model * v2);
+        
+        clip_tri.vertices[0].position.w = clip_tri.vertices[0].position.z;
+        clip_tri.vertices[1].position.w = clip_tri.vertices[1].position.z;
+        clip_tri.vertices[2].position.w = clip_tri.vertices[2].position.z;
+
+        std::vector<Triangle3D> clip_result = ClipTriangle(&clip_tri);
+
+        shader.frag = &green_frag;
+        for (Triangle3D clipped_tri : clip_result){
+            clipped_tri.vertices[0].position.w = 1.0f;
+            clipped_tri.vertices[1].position.w = 1.0f;
+            clipped_tri.vertices[2].position.w = 1.0f;
+
+            DrawTriangle(clipped_tri, render_buffer, proj * view, tex, shader);
+        }
+
+        DrawLine(vec4(), vec4(20, 0, 20, 1), render_buffer, proj * view, vec3(0, 0, 1));
+        DrawLine(vec4(-20, 0, 0, 1), vec4(20, 0, 0, 1), render_buffer, proj * view, vec3(0, 0, 1));
+        DrawLine(vec4(), vec4(-20, 0, 20, 1), render_buffer, proj * view, vec3(0, 0, 1));
 
         // Empty buffer to Renderer
         BlitBuffer(render_buffer, sdl_buffer, renderer);

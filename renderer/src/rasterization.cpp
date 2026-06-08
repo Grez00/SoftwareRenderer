@@ -3,18 +3,23 @@
 // Triangle Collision and Rasterization
 
 float Edge(vec3 v0, vec3 v1, vec2 p){
-    return (p.x - v0.x) * (v1.y - v0.y) - (p.y - v0.y) * (v1.x - v0.x);
+    return (p.y - v0.y) * (v1.x - v0.x) - (p.x - v0.x) * (v1.y - v0.y);
+}
+
+bool IsTopLeft(vec3 v0, vec3 v1){
+    return (v1.y > v0.y) || (v1.x < v0.x);
 }
 
 bool IsInTriangle(vec2 p, Triangle2D tri){
-    float e0 = Edge(tri.vertices[0].position, tri.vertices[1].position, p);
-    float e1 = Edge(tri.vertices[1].position, tri.vertices[2].position, p);
-    float e2 = Edge(tri.vertices[2].position, tri.vertices[0].position, p);
+    vec3 v0 = tri.vertices[0].position;
+    vec3 v1 = tri.vertices[1].position;
+    vec3 v2 = tri.vertices[2].position;
 
-    if (e0 >= 0.0f && e1 >= 0.0f && e2 >= 0.0f){
-        return true;
-    }
-    return false;
+    float e0 = Edge(v1, v2, p);
+    float e1 = Edge(v2, v0, p);
+    float e2 = Edge(v0, v1, p);
+
+    return e0 >= 0.0f && e1 >= 0.0f && e2 >= 0.0f;
 }
 
 vec4 BarycentricCoords(vec2 p, Triangle2D tri){
@@ -40,10 +45,10 @@ vec4 GetBoundingBox(Triangle2D tri, int w, int h){
     vec3 p1 = tri.vertices[1].position;
     vec3 p2 = tri.vertices[2].position;
 
-    float xmin = (po.x < p1.x) ? ((po.x < p2.x) ? po.x : p2.x) : ((p1.x < p2.x) ? p1.x : p2.x);
-    float ymin = (po.y < p1.y) ? ((po.y < p2.y) ? po.y : p2.y) : ((p1.y < p2.y) ? p1.y : p2.y);
-    float xmax = (po.x > p1.x) ? ((po.x > p2.x) ? po.x : p2.x) : ((p1.x > p2.x) ? p1.x : p2.x);
-    float ymax = (po.y > p1.y) ? ((po.y > p2.y) ? po.y : p2.y) : ((p1.y > p2.y) ? p1.y : p2.y);
+    int xmin = floor((po.x < p1.x) ? ((po.x < p2.x) ? po.x : p2.x) : ((p1.x < p2.x) ? p1.x : p2.x));
+    int ymin = floor((po.y < p1.y) ? ((po.y < p2.y) ? po.y : p2.y) : ((p1.y < p2.y) ? p1.y : p2.y));
+    int xmax = ceil((po.x > p1.x) ? ((po.x > p2.x) ? po.x : p2.x) : ((p1.x > p2.x) ? p1.x : p2.x));
+    int ymax = ceil((po.y > p1.y) ? ((po.y > p2.y) ? po.y : p2.y) : ((p1.y > p2.y) ? p1.y : p2.y));
 
     return vec4(xmin, ymin, xmax, ymax);
 }
@@ -51,10 +56,69 @@ vec4 GetBoundingBox(Triangle2D tri, int w, int h){
 void RasterizeTriangle(Triangle2D tri, FrameBuffer buffer, Texture tex, Shader shader){
     vec4 bb = GetBoundingBox(tri, buffer.w, buffer.h);
 
+    vec3 v0 = tri.vertices[0].position;
+    vec3 v1 = tri.vertices[1].position;
+    vec3 v2 = tri.vertices[2].position;
+    vec3 z_vals = vec3(1.0f/tri.vertices[0].position.z, 1.0f/tri.vertices[1].position.z, 1.0f/tri.vertices[2].position.z);
+
+    float z_10_diff = z_vals.y - z_vals.x;
+    float z_20_diff = z_vals.z - z_vals.x;
+    vec2 uv_10_diff = tri.vertices[1].uv - tri.vertices[0].uv;
+    vec2 uv_20_diff = tri.vertices[2].uv - tri.vertices[0].uv;
+    vec3 normal_10_diff = tri.vertices[1].normal - tri.vertices[0].normal;
+    vec3 normal_20_diff = tri.vertices[2].normal - tri.vertices[0].normal;
+
+    float d_area = 1.0f/Edge(v1, v2, vec2(v0));
+
+    float A01 = v0.y - v1.y, B01 = v1.x - v0.x;
+    float A12 = v1.y - v2.y, B12 = v2.x - v1.x;
+    float A20 = v2.y - v0.y, B20 = v0.x - v2.x;
+
+    vec2 p = vec2(bb.x + 0.5f, bb.y + 0.5f);
+    float w0_row = Edge(v1, v2, p);
+    float w1_row = Edge(v2, v0, p);
+    float w2_row = Edge(v0, v1, p);
+
+    for (int y = bb.y; y < bb.w; y++){
+        float w0 = w0_row;
+        float w1 = w1_row;
+        float w2 = w2_row;
+
+        for (int x = bb.x; x < bb.z; x++){
+            if (w0 >= 0.0f && w1 >= 0.0f && w2 >= 0.0f){
+                float b1 = w1*d_area;
+                float b2 = w2*d_area;
+                float depth = 1.0f / (z_vals.x + z_10_diff*b1 + z_20_diff*b2);
+                if (depth < buffer.ReadDepthBuffer(x, y)){
+                    b1 = b1*z_vals.y*depth;
+                    b2 = b2*z_vals.z*depth;
+
+                    vec2 uv = (tri.vertices[0].uv + uv_10_diff*b1 + uv_20_diff*b2);
+                    vec3 normal = (tri.vertices[0].normal + normal_10_diff*b1 + normal_20_diff*b2);
+                    
+                    buffer.SetDepthBuffer(x, y, depth);
+                    buffer.SetRenderBuffer(x, y, shader.frag->Evaluate(vertex(vec4(x, y, depth), normal, uv), tex.sample(uv)));
+                }
+            }
+
+            w0 += A12;
+            w1 += A20;
+            w2 += A01;
+        }
+
+        w0_row += B12;
+        w1_row += B20;
+        w2_row += B01;
+    }
+}
+
+void RasterizeTriangleOld(Triangle2D tri, FrameBuffer buffer, Texture tex, Shader shader){
+    vec4 bb = GetBoundingBox(tri, buffer.w, buffer.h);
+
     for (int i = bb.y; i < bb.w; i++){
         for (int j = bb.x; j < bb.z; j++){
             vec4 bcc = BarycentricCoords(vec2(j, i), tri);
-            if (bcc.x > 0.0f && bcc.y > 0.0f && bcc.z > 0.0f && 1.0f - (bcc.x + bcc.y + bcc.z) < 0.001f){
+            if (bcc.w > 0.0f){
                 vec3 z_values = vec3(tri.vertices[0].position.z, tri.vertices[1].position.z, tri.vertices[2].position.z);
                 float depth = 1.0f/(
                     (1.0f/z_values.x) * bcc.x + 

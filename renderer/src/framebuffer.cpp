@@ -37,16 +37,13 @@ void FrameBuffer::Clear(vec3 clear_col){
         static_cast<uint8_t>(clear_col.y * 255.0f),
         static_cast<uint8_t>(clear_col.z * 255.0f)
     };  
-
-    int index = 0;
-    for (int y = 0; y < h; y++){
-        for (int x = 0; x < w; x++){
-            render_buffer[index] = clear_col_int[0];
-            render_buffer[index+1] = clear_col_int[1];
-            render_buffer[index+2] = clear_col_int[2]; 
-            SetDepthBuffer(x, y, 99999999.9f);
-            index+=3;
-        }
+    
+    int num_pixels = w * h;
+    for (int i = 0; i < num_pixels; i++){
+        render_buffer[i*3] = clear_col_int[0];
+        render_buffer[i*3+1] = clear_col_int[1];
+        render_buffer[i*3+2] = clear_col_int[2];
+        depth_buffer[i] = 99999999.9f;
     }
 }
 
