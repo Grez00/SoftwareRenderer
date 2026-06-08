@@ -4,7 +4,7 @@ This is, as you may have guessed, a simple software rendering library. Written i
 - Rasterizing of lines and triangles
 - Perspective-correct interpolation
 - Texture loading and sampling
-- A depth buffer
+- Depth buffering
 - Mesh loading from .obj files
 - Blinn-Phong lighting
 - Positionable camera
