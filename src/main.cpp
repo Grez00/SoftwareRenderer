@@ -5,11 +5,13 @@
 #include <renderer/renderer.h>
 #include <SDL3/SDL.h>
 
-const int SCR_WIDTH = 800, SCR_HEIGHT = 600; // Pixels to render
-const int RENDER_SCALE = 1; // Multiplier for the actual scale of the window
+#define PI 3.14159265358979323846f
 
-const float MOVE_SPEED = 50.0f;
-const float ROTATION_SPEED = 25.0f;
+const int SCR_WIDTH = 800/2, SCR_HEIGHT = 600/2; // Pixels to render
+const float RENDER_SCALE = 2.5; // Multiplier for the actual scale of the window
+
+const float MOVE_SPEED = 10.0f;
+const float ROTATION_SPEED = 5.0f;
 
 const bool frustum_cull = false;
 
@@ -79,9 +81,9 @@ int HandleInput(vec3 &offset, int &cam_to_use, Camera *cam, float delta_time, SD
                 //cam_to_use = 1;
                 offset += vec3(velocity, 0, 0);
             } else if (event.key.key == SDLK_UP){
-                offset += vec3(0, 0, velocity);
+                offset += vec3(0, velocity, 0);
             } else if (event.key.key == SDLK_DOWN){
-                offset += vec3(0, 0, -velocity);
+                offset += vec3(0, -velocity, 0);
             }
 
             cam->UpdateVectors();
@@ -143,10 +145,13 @@ int main(int argc, char *argv[]){
     Mesh cube = Mesh("assets/models/cube.obj");
     Mesh bishop = Mesh("assets/models/bishop.obj");
     Mesh icosphere = Mesh("assets/models/icosphere.obj");
-    Mesh sphere_mesh = Mesh("assets/models/sphere.obj");
+    Mesh sphere_mesh = Mesh("assets/models/sphere_smooth.obj");
+    Mesh why = Mesh("assets/models/why.obj");
+    Mesh house = Mesh("assets/models/house.obj");
+    Mesh king = Mesh("assets/models/king.obj");
 
     // Load Textures
-    Texture tex = Texture("assets/images/worldsky.png");
+    Texture tex = Texture("assets/images/computers.png");
 
     // Link Textures
     cube.LinkTexture(tex);
@@ -157,10 +162,21 @@ int main(int argc, char *argv[]){
     aabb test_box = aabb(vec3(0, 0, -7), vec3(2, 2, 2));
     vec3 tri_offset = vec3();
     int cam_to_use = 0;
+    float angle = 0;
+
+    // Set up Lighting
+    dirlight main_light = dirlight(vec3(1, 0, 0), vec3(0.1, 0.1, 0.1), vec3(0.25, 0.25, 0.25), vec3(0.25, 0.25, 0.25));
+    pointlight secondary_light = pointlight(vec3(-2.0f, 0.0f, -2.5f), 0.1f, 0.1f, vec3(0.1f, 0.1f, 0.1f), vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.5f));
+    dirlight *dir_lights = {&main_light};
+    pointlight *point_lights = {&secondary_light};
+    SceneLighting lighting_info = SceneLighting(dir_lights, point_lights, 1, 1);
 
     // Create shaders
+    StandardVertex vert = StandardVertex();
+
     BlinnPhongShader bp_frag = BlinnPhongShader();
-    TextureShader tex_frag = TextureShader();
+    TextureShader tex_frag = TextureShader(&tex);
+    NormalShader normal_frag = NormalShader();
 
     ColorShader blue_frag = ColorShader(vec3(0, 0, 1));
     ColorShader red_frag = ColorShader(vec3(1, 0, 0));
@@ -168,6 +184,7 @@ int main(int argc, char *argv[]){
 
     Shader shader = Shader();
     shader.frag = &bp_frag;
+    shader.vertex = &vert;
 
     // Set up time
     double current_time = 0;
@@ -204,10 +221,19 @@ int main(int argc, char *argv[]){
         proj = secondary_cam.proj;
 
         // Render geometry
-        mat4 cube_model = GetModelMatrix(vec3(0.0f, 0.0f, -2.5f), vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
+        mat4 cube_model = 
+            GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
 
+        bp_frag.tex = &tex;
+        bp_frag.cam_pos = secondary_cam.position;
+        bp_frag.light_info = &lighting_info;
         shader.frag = &bp_frag;
-        DrawMesh(bishop, render_buffer, proj, view * cube_model, shader);
+
+        vert.model = cube_model;
+        vert.view = view;
+        vert.proj = proj;
+        shader.vertex = &vert;
+        DrawMesh(king, &render_buffer, &shader);
 
         // Empty buffer to Renderer
         BlitBuffer(render_buffer, sdl_buffer, renderer);

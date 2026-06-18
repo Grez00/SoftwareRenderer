@@ -77,7 +77,7 @@ bool IsInView(vec4 p){
         (p.z < -p.w || p.z > p.w)
     ) return false;
 
-    return true;   
+    return true;
 }
 
 bool IsInView(vertex v){
@@ -93,7 +93,8 @@ bool IsInView(Triangle3D tri){
     return true;
 }
 
-bool IsBackface(Triangle3D tri, FrameBuffer buffer, mat4 proj){
+// For a triangle in view-space
+bool IsBackfaceView(Triangle3D tri){
     vec3 v0 = vec3(tri.vertices[1].position - tri.vertices[0].position);
     vec3 v1 = vec3(tri.vertices[2].position - tri.vertices[0].position);
     vec3 normal = normalize(cross(v0, v1));
@@ -104,28 +105,18 @@ bool IsBackface(Triangle3D tri, FrameBuffer buffer, mat4 proj){
     return false;
 }
 
+// For a triangle in screen-space
+bool IsBackfaceScreen(Triangle2D tri){
+    vec2 ab = tri.vertices[0].position - tri.vertices[1].position;
+    vec2 ac = tri.vertices[0].position - tri.vertices[2].position;
+    return cross(ab, ac) <= 0;
+}
+
 bool IsInFrustum(Mesh mesh, Camera cam, mat4 model){
     sphere bounding_sphere = mesh.GetBoundingSphere();
     bounding_sphere.c = model * v3tov4(bounding_sphere.c, 1.0f);
     frustum cam_frustum = frustum(cam);
     return FrustumSphereIntersect(cam_frustum, bounding_sphere);
-}
-
-bool LineAxisIntersect(float a_v, float b_v, vertex &a, vertex &b, vertex &intersect){
-    bool a_in = a.position.w >= a_v;
-    bool b_in = b.position.w >= b_v;
-
-    if (!(a_in || b_in)) return -1;
-    if (!(a_in && b_in)){
-        float t = (a.position.w - a_v) / ((a.position.w - a_v) - (b.position.w - b_v));
-        intersect.position = a.position*(1.0f-t) + b.position*t;
-        intersect.normal = a.normal*(1.0f-t) + b.normal*t;
-        intersect.uv = a.uv*(1.0f-t) + b.uv*t;
-
-        return 0;
-    }
-
-    return -1;
 }
 
 ClipLineResult ClipLineAxis(float a_v, float b_v, vec4 &a, vec4 &b){
@@ -164,139 +155,145 @@ bool ClipLine(vec4 &a, vec4 &b){
     return true; // Passed all tests
 }
 
-std::vector<Triangle3D> ClipTriangleAxis(float t1, float t2, float t3, Triangle3D *tri){
+bool LineAxisIntersect(float a_v, float b_v, vertex a, vertex b, vertex &intersect){
+    float t = (a.position.w - a_v) / ((a.position.w - a_v) - (b.position.w - b_v));
+    intersect.position = a.position*(1.0f-t) + b.position*t;
+    intersect.normal = a.normal*(1.0f-t) + b.normal*t;
+    intersect.uv = a.uv*(1.0f-t) + b.uv*t;
+
+    return 0;
+}
+
+bool IsInAxis(vertex v, float a){
+    return v.position.w >= a;
+}
+
+std::vector<Triangle3D> ClipTriangleAxis(float t1, float t2, float t3, Triangle3D tri){
     std::vector<Triangle3D> tris = std::vector<Triangle3D>();
+    std::vector<vertex> out_verts = std::vector<vertex>();
     float *test_values = new float[3];
     test_values[0] = t1;
     test_values[1] = t2;
     test_values[2] = t3;
 
-    int num_in = 0;
-    int *in = new int[3];
-
-    int num_out = 0;
-    int *out = new int[3];
-
     for (int i = 0; i < 3; i++){
-        if (tri->vertices[i].position.w >= test_values[i]){
-            in[num_in] = i;
-            num_in++;
+        int curr_index = i;
+        int prev_index = (i-1 + 3) % 3;
+        vertex curr = tri.vertices[curr_index];
+        vertex prev = tri.vertices[prev_index];
+        float curr_test = test_values[curr_index];
+        float prev_test = test_values[prev_index];
+
+        bool curr_in = IsInAxis(curr, curr_test);
+        bool prev_in = IsInAxis(prev, prev_test);
+
+        if (curr_in != prev_in){
+            vertex intersect;
+            LineAxisIntersect(
+                curr_test, 
+                prev_test, 
+                curr, 
+                prev, 
+                intersect
+            );
+            out_verts.push_back(intersect);
         }
-        else{
-            out[num_out] = i;
-            num_out++;
+
+        if (curr_in){
+            out_verts.push_back(curr);
         }
     }
 
-    if (num_out == 0){
-        tris.push_back(*tri);
-        return tris;
+    int num_out_verts = out_verts.size();
+    if (num_out_verts == 0){
+        // Do nothing
     }
-    else if (num_out == 3){
-        return tris;
-    }
-    else if (num_out == 2){
-        vertex v0;
-        if (LineAxisIntersect(test_values[in[0]], test_values[out[0]], tri->vertices[in[0]], tri->vertices[out[0]], v0) == -1) return tris;
-
-        vertex v1;
-        if (LineAxisIntersect(test_values[in[0]], test_values[out[1]], tri->vertices[in[0]], tri->vertices[out[1]], v1) == -1) return tris;
-
+    else if (num_out_verts == 3){
         tris.push_back(
             Triangle3D(
-                tri->vertices[in[0]],
-                v0,
-                v1
+                out_verts[0],
+                out_verts[1],
+                out_verts[2]
             )
         );
-
-        return tris;
+    }
+    else if (num_out_verts == 4){
+        tris.push_back(
+            Triangle3D(
+                out_verts[0],
+                out_verts[1],
+                out_verts[2]
+            )
+        );
+        
+        tris.push_back(
+            Triangle3D(
+                out_verts[0],
+                out_verts[2],
+                out_verts[3]
+            )
+        );
     }
     else{
-        vertex v0;
-        if (LineAxisIntersect(test_values[in[0]], test_values[out[0]], tri->vertices[in[0]], tri->vertices[out[0]], v0) == -1) return tris;
-
-        vertex v1;
-        if (LineAxisIntersect(test_values[in[1]], test_values[out[0]], tri->vertices[in[1]], tri->vertices[out[0]], v1) == -1) return tris;
-
-        tris.push_back(
-            Triangle3D(
-                tri->vertices[in[0]],
-                tri->vertices[in[1]],
-                v0
-            )
-        );
-        tris.push_back(
-            Triangle3D(
-                v0,
-                tri->vertices[in[1]],
-                v1
-            )
-        );
-
-        return tris;
+        printf("Clipper: Error, reached invalid state\n");
     }
+
+    return tris;
 }
 
-std::vector<Triangle3D> ClipTriangles(std::vector<Triangle3D> *tris){
+#define CLIP_TRIS_01(t0, t1, t2)                                                         \
+    do {                                                                                 \
+        for (Triangle3D tri : result_0){                                                 \
+            next_result = ClipTriangleAxis(t0, t1, t2, tri);                             \
+            result_1.insert(result_1.end(), next_result.begin(), next_result.end());     \
+        }                                                                                \
+        if (result_1.size() == 0) return result_1;                                       \
+        result_0.clear();                                                                \
+    } while(0)                                                                           \
+
+#define CLIP_TRIS_10(t0, t1, t2)                                                         \
+    do {                                                                                 \
+        for (Triangle3D tri : result_1){                                                 \
+            next_result = ClipTriangleAxis(t0, t1, t2, tri);                             \
+            result_0.insert(result_0.end(), next_result.begin(), next_result.end());     \
+        }                                                                                \
+        if (result_0.size() == 0) return result_0;                                       \
+        result_1.clear();                                                                \
+    } while(0)                                                                           \
+
+std::vector<Triangle3D> ClipTriangles(std::vector<Triangle3D> tris){
     float epsilon = 0.00001f;
 
     std::vector<Triangle3D> result_0 = std::vector<Triangle3D>();
-    result_0.insert(result_0.end(), tris->begin(), tris->end());
+    result_0.insert(result_0.end(), tris.begin(), tris.end());
 
     std::vector<Triangle3D> result_1 = std::vector<Triangle3D>();
     std::vector<Triangle3D> next_result = std::vector<Triangle3D>();
 
-    for (Triangle3D tri : result_0){
-        next_result = ClipTriangleAxis(epsilon, epsilon, epsilon, &tri);
-        result_1.insert(result_1.end(), next_result.begin(), next_result.end());
-    }
-    result_0.clear();
+    CLIP_TRIS_01(epsilon, epsilon, epsilon);
+    CLIP_TRIS_10(tri.vertices[0].position.x, tri.vertices[1].position.x, tri.vertices[2].position.x);
+    CLIP_TRIS_01(-tri.vertices[0].position.x, -tri.vertices[1].position.x, -tri.vertices[2].position.x);
+    CLIP_TRIS_10(tri.vertices[0].position.y, tri.vertices[1].position.y, tri.vertices[2].position.y);
+    CLIP_TRIS_01(-tri.vertices[0].position.y, -tri.vertices[1].position.y, -tri.vertices[2].position.y);
+    CLIP_TRIS_10(tri.vertices[0].position.z, tri.vertices[1].position.z, tri.vertices[2].position.z);
+    CLIP_TRIS_01(-tri.vertices[0].position.z, -tri.vertices[1].position.z, -tri.vertices[2].position.z);
 
-    for (Triangle3D tri : result_1){
-        next_result = ClipTriangleAxis(tri.vertices[0].position.x, tri.vertices[1].position.x, tri.vertices[2].position.x, &tri);
-        result_0.insert(result_0.end(), next_result.begin(), next_result.end());
-    }
-    result_1.clear();
-
-    for (Triangle3D tri : result_0){
-        next_result = ClipTriangleAxis(-tri.vertices[0].position.x, -tri.vertices[1].position.x, -tri.vertices[2].position.x, &tri);
-        result_1.insert(result_1.end(), next_result.begin(), next_result.end());
-    }
-    result_0.clear();
-
-    for (Triangle3D tri : result_1){
-        next_result = ClipTriangleAxis(tri.vertices[0].position.y, tri.vertices[1].position.y, tri.vertices[2].position.y, &tri);
-        result_0.insert(result_0.end(), next_result.begin(), next_result.end());
-    }
-    result_1.clear();
-
-    for (Triangle3D tri : result_0){
-        next_result = ClipTriangleAxis(-tri.vertices[0].position.y, -tri.vertices[1].position.y, -tri.vertices[2].position.y, &tri);
-        result_1.insert(result_1.end(), next_result.begin(), next_result.end());
-    }
-    result_0.clear();
-
-    for (Triangle3D tri : result_1){
-        next_result = ClipTriangleAxis(tri.vertices[0].position.z, tri.vertices[1].position.z, tri.vertices[2].position.z, &tri);
-        result_0.insert(result_0.end(), next_result.begin(), next_result.end());
-    }
-    result_1.clear();
-
-    for (Triangle3D tri : result_0){
-        next_result = ClipTriangleAxis(-tri.vertices[0].position.z, -tri.vertices[1].position.z, -tri.vertices[2].position.z, &tri);
-        result_1.insert(result_1.end(), next_result.begin(), next_result.end());
-    }
-    result_0.clear();
-
-    return result_1; // TODO
+    Triangle3D tri = tris[0];
+    return result_1;
 }
 
-std::vector<Triangle3D> ClipTriangle(Triangle3D *tri){
+std::vector<Triangle3D> ClipTriangle(Triangle3D tri){
     std::vector<Triangle3D> tris = std::vector<Triangle3D>();
-    tris.push_back(*tri);
+    tris.push_back(tri);
 
-    return ClipTriangles(&tris);
+    bool v0_in = IsInView(tri.vertices[0]);
+    bool v1_in = IsInView(tri.vertices[1]);
+    bool v2_in = IsInView(tri.vertices[2]);
+    if (v0_in && v1_in && v2_in){
+        return tris; // Early in
+    }
+
+    return ClipTriangles(tris);
 }
 
 // Drawing
@@ -405,13 +402,14 @@ void DrawSphere(sphere s, FrameBuffer buffer, mat4 proj, vec3 col){
     DrawLine(v3tov4(s.c + vec3(0, 0, -1) * s.r, 1.0f), v3tov4(s.c + vec3(0, 0, 1) * s.r, 1.0f), buffer, proj, vec3(0, 0, 1));
 }
 
-void DrawTriangle(Triangle3D tri, FrameBuffer buffer, mat4 proj, Texture tex, Shader shader){
-    if (IsBackface(tri, buffer, proj)) return;
-    Triangle3D main_tri = ApplyMatrixToTriangle(tri, proj);
-    std::vector<Triangle3D> clipped_tris = ClipTriangle(&main_tri);
+void DrawTriangle(Triangle3D tri, FrameBuffer *buffer, Shader *shader){
+    Triangle3D main_tri = shader->vertex->EvaluateTriangle(tri);
+    std::vector<Triangle3D> clipped_tris = ClipTriangle(main_tri);
 
     for (Triangle3D clipped_tri : clipped_tris){
-        RasterizeTriangle(WindowTriangle(clipped_tri, buffer.w, buffer.h), buffer, tex, shader);
+        Triangle2D window_tri = WindowTriangle(clipped_tri, buffer->w, buffer->h);
+        if (IsBackfaceScreen(window_tri)) continue;
+        RasterizeTriangle(window_tri, buffer, shader);
     }
 }
 
@@ -445,31 +443,28 @@ void DrawTriangleStrips(vertex vertices[], int vert_count, RenderInfo render_inf
 }
 */
 
-void DrawMesh(Mesh mesh, FrameBuffer buffer, mat4 proj, mat4 model, Shader shader){
-    mat3 id_model = mat3(transpose(inverse(model)));
+void DrawMesh(Mesh mesh, FrameBuffer *buffer, Shader *shader){
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < mesh.index_count; i+=3){
         DrawTriangle(
             Triangle3D(
-                vertex(model * mesh.positions[int(mesh.indices[i].x)], id_model * mesh.normals[int(mesh.indices[i].z)], mesh.uvs[int(mesh.indices[i].y)]), 
-                vertex(model * mesh.positions[int(mesh.indices[i+1].x)], id_model * mesh.normals[int(mesh.indices[i+1].z)], mesh.uvs[int(mesh.indices[i+1].y)]), 
-                vertex(model * mesh.positions[int(mesh.indices[i+2].x)], id_model * mesh.normals[int(mesh.indices[i+2].z)], mesh.uvs[int(mesh.indices[i+2].y)])
+                vertex(mesh.positions[int(mesh.indices[i].x)], mesh.normals[int(mesh.indices[i].z)], mesh.uvs[int(mesh.indices[i].y)]), 
+                vertex(mesh.positions[int(mesh.indices[i+1].x)], mesh.normals[int(mesh.indices[i+1].z)], mesh.uvs[int(mesh.indices[i+1].y)]), 
+                vertex(mesh.positions[int(mesh.indices[i+2].x)], mesh.normals[int(mesh.indices[i+2].z)], mesh.uvs[int(mesh.indices[i+2].y)])
             ), 
             buffer,
-            proj,
-            mesh.tex,
             shader
         );
     }
 }
 
 void DrawMeshWireframe(Mesh mesh, FrameBuffer buffer, mat4 proj, mat4 model, vec3 col){
-    mat3 id_model = mat3(transpose(inverse(model)));
     for (int i = 0; i < mesh.index_count; i+=3){
         DrawTriangleWireframe(
             Triangle3D(
-                vertex(model * mesh.positions[int(mesh.indices[i].x)], id_model * mesh.normals[int(mesh.indices[i].z)], mesh.uvs[int(mesh.indices[i].y)]), 
-                vertex(model * mesh.positions[int(mesh.indices[i+1].x)], id_model * mesh.normals[int(mesh.indices[i+1].z)], mesh.uvs[int(mesh.indices[i+1].y)]), 
-                vertex(model * mesh.positions[int(mesh.indices[i+2].x)], id_model * mesh.normals[int(mesh.indices[i+2].z)], mesh.uvs[int(mesh.indices[i+2].y)])
+                vertex(model * mesh.positions[int(mesh.indices[i].x)]), 
+                vertex(model * mesh.positions[int(mesh.indices[i+1].x)]), 
+                vertex(model * mesh.positions[int(mesh.indices[i+2].x)])
             ), 
             buffer,
             proj,

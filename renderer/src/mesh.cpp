@@ -19,6 +19,11 @@ Mesh::Mesh(const std::string &filename){
     std::string line;
     std::ifstream file(filename);
 
+    if (!file.is_open()){
+        printf("LoadMesh: Error, failed to open file, filename: %s\n", filename.c_str());
+        return;
+    }
+
     vec4 *p_positions;
     vec3 *p_normals;
     vec2 *p_uvs;

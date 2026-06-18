@@ -50,11 +50,16 @@ vec4 GetBoundingBox(Triangle2D tri, int w, int h){
     int xmax = ceil((po.x > p1.x) ? ((po.x > p2.x) ? po.x : p2.x) : ((p1.x > p2.x) ? p1.x : p2.x));
     int ymax = ceil((po.y > p1.y) ? ((po.y > p2.y) ? po.y : p2.y) : ((p1.y > p2.y) ? p1.y : p2.y));
 
+    //xmin = std::min(std::max(xmin, 0), w-1);
+    //ymin = std::min(std::max(ymin, 0), h-1);
+    //xmax = std::min(std::max(xmax, 0), w-1);
+    //ymax = std::min(std::max(ymax, 0), h-1);
+
     return vec4(xmin, ymin, xmax, ymax);
 }
 
-void RasterizeTriangle(Triangle2D tri, FrameBuffer buffer, Texture tex, Shader shader){
-    vec4 bb = GetBoundingBox(tri, buffer.w, buffer.h);
+void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader){
+    vec4 bb = GetBoundingBox(tri, buffer->w, buffer->h);
 
     vec3 v0 = tri.vertices[0].position;
     vec3 v1 = tri.vertices[1].position;
@@ -67,6 +72,8 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer buffer, Texture tex, Shader s
     vec2 uv_20_diff = tri.vertices[2].uv - tri.vertices[0].uv;
     vec3 normal_10_diff = tri.vertices[1].normal - tri.vertices[0].normal;
     vec3 normal_20_diff = tri.vertices[2].normal - tri.vertices[0].normal;
+    vec3 pos_10_diff = shader->vertex->varyings.world_pos[1] - shader->vertex->varyings.world_pos[0];
+    vec3 pos_20_diff = shader->vertex->varyings.world_pos[2] - shader->vertex->varyings.world_pos[0];
 
     float d_area = 1.0f/Edge(v1, v2, vec2(v0));
 
@@ -89,15 +96,16 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer buffer, Texture tex, Shader s
                 float b1 = w1*d_area;
                 float b2 = w2*d_area;
                 float depth = 1.0f / (z_vals.x + z_10_diff*b1 + z_20_diff*b2);
-                if (depth < buffer.ReadDepthBuffer(x, y)){
+                if (depth < buffer->ReadDepthBuffer(x, y)){
                     b1 = b1*z_vals.y*depth;
                     b2 = b2*z_vals.z*depth;
 
                     vec2 uv = (tri.vertices[0].uv + uv_10_diff*b1 + uv_20_diff*b2);
                     vec3 normal = (tri.vertices[0].normal + normal_10_diff*b1 + normal_20_diff*b2);
+                    vec3 position = (shader->vertex->varyings.world_pos[0] + pos_10_diff*b1 + pos_20_diff*b2);
                     
-                    buffer.SetDepthBuffer(x, y, depth);
-                    buffer.SetRenderBuffer(x, y, shader.frag->Evaluate(vertex(vec4(x, y, depth), normal, uv), tex.sample(uv)));
+                    buffer->SetDepthBuffer(x, y, depth);
+                    buffer->SetRenderBuffer(x, y, shader->frag->Evaluate(vertex2D(position, normal, uv)));
                 }
             }
 
@@ -109,36 +117,6 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer buffer, Texture tex, Shader s
         w0_row += B12;
         w1_row += B20;
         w2_row += B01;
-    }
-}
-
-void RasterizeTriangleOld(Triangle2D tri, FrameBuffer buffer, Texture tex, Shader shader){
-    vec4 bb = GetBoundingBox(tri, buffer.w, buffer.h);
-
-    for (int i = bb.y; i < bb.w; i++){
-        for (int j = bb.x; j < bb.z; j++){
-            vec4 bcc = BarycentricCoords(vec2(j, i), tri);
-            if (bcc.w > 0.0f){
-                vec3 z_values = vec3(tri.vertices[0].position.z, tri.vertices[1].position.z, tri.vertices[2].position.z);
-                float depth = 1.0f/(
-                    (1.0f/z_values.x) * bcc.x + 
-                    (1.0f/z_values.y) * bcc.y + 
-                    (1.0f/z_values.z) * bcc.z);
-                
-                if (depth < buffer.ReadDepthBuffer(j, i)){
-                    vec3 normal = 
-                        (tri.vertices[0].normal/z_values.x * bcc.x +
-                        tri.vertices[1].normal/z_values.y * bcc.y +
-                        tri.vertices[2].normal/z_values.z * bcc.z) * depth;
-                    vec2 uv = 
-                        (tri.vertices[0].uv/z_values.x * bcc.x + 
-                        tri.vertices[1].uv/z_values.y * bcc.y + 
-                        tri.vertices[2].uv/z_values.z * bcc.z) * depth;
-                    if (shader.frag != NULL) buffer.SetRenderBuffer(j, i, shader.frag->Evaluate(vertex(vec4(j, i, depth), normal, uv), tex.sample(uv)));
-                    buffer.SetDepthBuffer(j, i, depth);
-                }
-            }
-        }
     }
 }
 

@@ -17,6 +17,7 @@ FrameBuffer::FrameBuffer(){
 }
 
 void FrameBuffer::SetRenderBuffer(int x, int y, vec3 v){
+    y = h-y;
     int index = (y*w + x)*3;
     render_buffer[index] = static_cast<uint8_t>(std::min(std::max(v.x, 0.0f), 1.0f) * 255.0f);
     render_buffer[index+1] = static_cast<uint8_t>(std::min(std::max(v.y, 0.0f), 1.0f) * 255.0f);
