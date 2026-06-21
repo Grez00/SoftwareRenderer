@@ -1,0 +1,64 @@
+{
+    "camera" : {
+        "position" : [0, 0, 0],
+        "up" : [0, 1, 0],
+        "lookat" : [0, 0, -1],
+        "fov" : 45.0,
+        "aspect_ratio" : 1.333333333,
+        "near" : 0.01,
+        "far" : 100.0
+    },
+
+    "lighting" : {
+        "dir_lights" : [
+            {
+                "direction" : [1, 0, 0],
+                "ambient" : [0.1, 0.1, 0.1],
+                "diffuse" : [0.5, 0.5, 0.5],
+                "specular" : [0.5, 0.5, 0.5]
+            }
+        ],
+        "point_lights" : [
+            {
+                "position" : [-2, 0, -2.5],
+                "linear" : 0.1,
+                "quadratic" : 0.1,
+                "ambient" : [0, 0, 0.1],
+                "diffuse" : [0, 0, 0.5],
+                "specular" : [0, 0, 0.5]
+            }
+        ]
+    },
+
+    "textures" : [
+        {
+            "path" : "assets/images/worldsky.png"
+        }
+    ],
+
+    "materials" : [
+        {
+            "vert" : {
+                "type" : "standard"
+            },
+            "frag" : {
+                "type" : "blinn_phong",
+                "texture" : 0
+            }
+        }
+    ],
+
+    "models" : [
+        {
+            "path" : "assets/models/king.obj",
+            "material" : 0,
+            "matrix" : {
+                "position" : [0, 0, -5],
+                "scale" : [1, 1, 1],
+                "rotation" : 0,
+                "axis" : [0, 1, 0],
+                "r_point" : [0, 0, 0]
+            }
+        }
+    ]
+}

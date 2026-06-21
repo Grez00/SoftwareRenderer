@@ -13,6 +13,7 @@
 #include "rasterization.h"
 #include "renderinfo.h"
 #include "rendermats.h"
+#include "scene.h"
 #include "shader.h"
 #include "texture.h"
 #include "transformation.h"

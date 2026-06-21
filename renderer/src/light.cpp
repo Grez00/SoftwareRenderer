@@ -1,5 +1,6 @@
 #include "renderer/light.h"
 
+dirlight::dirlight() {}
 dirlight::dirlight(vec3 dir, vec3 ambient, vec3 diffuse, vec3 specular){
     this->direction = normalize(dir);
     this->ambient = ambient;
@@ -16,6 +17,7 @@ vec3 dirlight::Evaluate(vec3 normal, vec3 view_dir){
     return col;
 }
 
+pointlight::pointlight() {}
 pointlight::pointlight(vec3 pos, float linear, float quadratic, vec3 ambient, vec3 diffuse, vec3 specular){
     this->position = pos;
     this->linear = linear;
@@ -42,6 +44,10 @@ vec3 pointlight::Evaluate(vec3 normal, vec3 view_dir, vec3 frag_pos){
     return col;
 }
 
+SceneLighting::SceneLighting(){
+    num_dir_lights = 0;
+    num_p_lights = 0;
+}
 SceneLighting::SceneLighting(dirlight *dir_lights, pointlight *p_lights, int num_dir_lights, int num_p_lights){
     this->dir_lights = dir_lights;
     this->p_lights = p_lights;

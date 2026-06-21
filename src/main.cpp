@@ -10,8 +10,8 @@
 const int SCR_WIDTH = 800/2, SCR_HEIGHT = 600/2; // Pixels to render
 const float RENDER_SCALE = 2.5; // Multiplier for the actual scale of the window
 
-const float MOVE_SPEED = 10.0f;
-const float ROTATION_SPEED = 5.0f;
+const float MOVE_SPEED = 5.0f;
+const float ROTATION_SPEED = 2.5f;
 
 const bool frustum_cull = false;
 
@@ -153,12 +153,6 @@ int main(int argc, char *argv[]){
     // Load Textures
     Texture tex = Texture("assets/images/computers.png");
 
-    // Link Textures
-    cube.LinkTexture(tex);
-    icosphere.LinkTexture(tex);
-    bishop.LinkTexture(tex);
-    sphere_mesh.LinkTexture(tex);
-
     aabb test_box = aabb(vec3(0, 0, -7), vec3(2, 2, 2));
     vec3 tri_offset = vec3();
     int cam_to_use = 0;
@@ -186,6 +180,8 @@ int main(int argc, char *argv[]){
     shader.frag = &bp_frag;
     shader.vertex = &vert;
 
+    Scene scene = Scene("assets/scenes/scene_example.json");
+
     // Set up time
     double current_time = 0;
     double prev_time = 0;
@@ -198,13 +194,13 @@ int main(int argc, char *argv[]){
     // Rendering Loop
     SDL_Event event;
     while(true){
-        // Poll for input
-        if (HandleInput(tri_offset, cam_to_use, &secondary_cam, delta_time, event) == -1) break;
-
         // Update time
         prev_time = current_time;
         current_time = GetCurrentTime() - start_time;
         delta_time = current_time - prev_time;
+
+        // Poll for input
+        if (HandleInput(tri_offset, cam_to_use, &secondary_cam, delta_time, event) == -1) break;
 
         // Prints FPS once every second to keep track of performance
         if (int(current_time) - seconds == 0){
@@ -224,9 +220,9 @@ int main(int argc, char *argv[]){
         mat4 cube_model = 
             GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
 
-        bp_frag.tex = &tex;
+        bp_frag.tex = &scene.textures[0];
         bp_frag.cam_pos = secondary_cam.position;
-        bp_frag.light_info = &lighting_info;
+        bp_frag.light_info = &scene.lighting_info;
         shader.frag = &bp_frag;
 
         vert.model = cube_model;

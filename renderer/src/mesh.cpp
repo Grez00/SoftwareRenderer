@@ -12,7 +12,7 @@ Mesh::Mesh(vec4 *p_positions, vec3 *p_normals, vec2 *p_uvs, vec3 *p_indices, int
 Mesh::Mesh(const std::string &filename){
     std::string file_end = ".obj";
     if (filename.length() < file_end.length() || filename.compare(filename.length() - file_end.length(), file_end.length(), file_end)){
-        printf("LoadMesh: Error, invalid file name (got: %s)\n", filename.c_str());
+        printf("LoadMesh: Error, invalid file type (got: %s)\n", filename.c_str());
         return;
     }
 
@@ -67,6 +67,7 @@ Mesh::Mesh(const std::string &filename){
             }
         }
     }
+    file.close();
 
     p_positions = new vec4[seen_pos.size()];
     std::copy(seen_pos.begin(), seen_pos.end(), p_positions);
@@ -92,8 +93,6 @@ Mesh::Mesh(const std::string &filename){
         std::copy(seen_uvs.begin(), seen_uvs.end(), p_uvs);
     }
 
-    file.close();
-
     positions = p_positions;
     normals = p_normals;
     uvs = p_uvs;
@@ -111,10 +110,6 @@ Mesh::Mesh(){
 
     vert_count = 0;
     index_count = 0;
-}
-
-void Mesh::LinkTexture(Texture p_tex){
-    tex = p_tex;
 }
 
 sphere Mesh::GetBoundingSphere(){
@@ -149,4 +144,22 @@ sphere Mesh::GetBoundingSphere(){
     }
 
     return sphere(center, radius);
+}
+
+Model::Model() {}
+Model::Model(Mesh *mesh){
+    this->mesh = mesh;
+}
+Model::Model(Mesh *mesh, Material *mat, mat4 model){
+    this->mesh = mesh;
+    this->mat = mat;
+    this->model = model;
+}
+
+void Model::LinkMaterial(Material *mat){
+    this->mat = mat;
+}
+
+void Model::LinkMatrix(mat4 model){
+    this->model = model;
 }
