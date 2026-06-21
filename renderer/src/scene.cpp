@@ -363,7 +363,13 @@ Scene::Scene(const std::string &filename){
 }
 
 void Scene::Draw(FrameBuffer *buffer){
+    frustum cam_frustum = frustum(main_cam);
     for (int i = 0; i < num_models; i++){
+        // Frustum Culling
+        sphere bounding_sphere = models[i].mesh->GetBoundingSphere();
+        bounding_sphere.c = models[i].model * v3tov4(bounding_sphere.c, 1.0f);
+        if (!FrustumSphereIntersect(cam_frustum, bounding_sphere)) continue;
+
         DrawMesh(*models[i].mesh, buffer, models[i].mat->shader);
     }
 }
