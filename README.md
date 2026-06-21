@@ -17,4 +17,4 @@ This is, as you may have guessed, a simple software rendering library. Written i
 
 The library has only one external dependency, *stb_image*, which it requires for loading images (for textures). The final output of the library is a FrameBuffer containing all of the pixel colors and depth values for a single frame. You can then use whatever other library you want to output these pixels to the screen. The demo file, *main.cpp*, uses SDL3.
 
-To use the library yourself, place *lib/librenderer.a* in your own lib folder, and place everything within *include/renderer* into your include folder. Be sure to include the library when compiling. A Makefile which builds the library from source is also provided.
+Should you want to use the library yourself, a Makefile which builds it from source is provided.
