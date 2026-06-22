@@ -12,7 +12,7 @@ struct dirlight{
 
     dirlight();
     dirlight(vec3 dir, vec3 ambient, vec3 diffuse, vec3 specular);
-    vec3 Evaluate(vec3 normal, vec3 view_dir);
+    vec3 Evaluate(vec3 normal, vec3 view_dir, vec3 m_ambient, vec3 m_diffuse, vec3 m_specular, float m_shininess);
 };
 
 struct pointlight{
@@ -27,7 +27,7 @@ struct pointlight{
 
     pointlight();
     pointlight(vec3 pos, float linear, float quadratic, vec3 ambient, vec3 diffuse, vec3 specular);
-    vec3 Evaluate(vec3 normal, vec3 view_dir, vec3 frag_pos);
+    vec3 Evaluate(vec3 normal, vec3 view_dir, vec3 frag_pos, vec3 m_ambient, vec3 m_diffuse, vec3 m_specular, float m_shininess);
 };
 
 class SceneLighting{

@@ -9,6 +9,7 @@
 #include "light.h"
 #include "mat3.h"
 #include "mat4.h"
+#include "material.h"
 #include "mesh.h"
 #include "rasterization.h"
 #include "renderinfo.h"

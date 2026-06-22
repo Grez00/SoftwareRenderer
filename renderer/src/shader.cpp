@@ -63,23 +63,28 @@ vec3 NormalShader::Evaluate(vertex2D v){
     return v.normal;
 }
 
-BlinnPhongShader::BlinnPhongShader() {}
+BlinnPhongShader::BlinnPhongShader() {
+    ambient = vec3(1, 1, 1);
+    diffuse = vec3(1, 1, 1);
+    specular = vec3(1, 1, 1);
+    shininess = 1.0f;
+}
 BlinnPhongShader::BlinnPhongShader(Texture *tex, SceneLighting *light_info, vec3 cam_pos){
     this->tex = tex;
     this->light_info = light_info;
     this->cam_pos = cam_pos;
 }
 vec3 BlinnPhongShader::Evaluate(vertex2D v){
-    vec3 tex_col = vec3(1, 0, 1);
+    vec3 tex_col = vec3(1, 1, 1);
     if (tex != NULL) tex_col = tex->sample(v.uv);
     vec3 view_dir = normalize(cam_pos - v.position);
 
     vec3 col = vec3();
     for (int i = 0; i < light_info->num_dir_lights; i++){
-        col += light_info->dir_lights[i].Evaluate(v.normal, view_dir);
+        col += light_info->dir_lights[i].Evaluate(v.normal, view_dir, ambient, diffuse, specular, shininess);
     }
     for (int i = 0; i < light_info->num_p_lights; i++){
-        col += light_info->p_lights[i].Evaluate(v.normal, view_dir, v.position);
+        col += light_info->p_lights[i].Evaluate(v.normal, view_dir, v.position, ambient, diffuse, specular, shininess);
     }
 
     return tex_col * col;

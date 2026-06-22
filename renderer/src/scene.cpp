@@ -258,7 +258,10 @@ Scene::Scene(const std::string &filename){
             
             std::string vert_type = std::any_cast<std::string>(next_vert["type"]);
             if (vert_type == "standard"){
-                vert = StandardVertex();
+                StandardVertex st_vert = StandardVertex();
+                st_vert.view = main_cam.view;
+                st_vert.proj = main_cam.proj;
+                vert = st_vert;
             }
 
             std::string frag_type = std::any_cast<std::string>(next_frag["type"]);
@@ -370,6 +373,6 @@ void Scene::Draw(FrameBuffer *buffer){
         bounding_sphere.c = models[i].model * v3tov4(bounding_sphere.c, 1.0f);
         if (!FrustumSphereIntersect(cam_frustum, bounding_sphere)) continue;
 
-        DrawMesh(*models[i].mesh, buffer, models[i].mat->shader);
+        DrawMesh(*models[i].mesh, buffer, models[i].mats->shader);
     }
 }

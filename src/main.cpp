@@ -180,7 +180,8 @@ int main(int argc, char *argv[]){
     shader.frag = &bp_frag;
     shader.vertex = &vert;
 
-    Scene scene = Scene("assets/scenes/scene_example.json");
+    MaterialStore materials = MaterialStore();
+    materials.LoadMaterials("assets/materials/multicube.mtl");
 
     // Set up time
     double current_time = 0;
@@ -220,9 +221,9 @@ int main(int argc, char *argv[]){
         mat4 cube_model = 
             GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
 
-        bp_frag.tex = &scene.textures[0];
+        bp_frag.tex = &tex;
         bp_frag.cam_pos = secondary_cam.position;
-        bp_frag.light_info = &scene.lighting_info;
+        bp_frag.light_info = &lighting_info;
         shader.frag = &bp_frag;
 
         vert.model = cube_model;

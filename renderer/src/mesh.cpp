@@ -66,6 +66,9 @@ Mesh::Mesh(const std::string &filename){
                 }
             }
         }
+        else if (tokens[0] == "use_mtl"){
+
+        }
     }
     file.close();
 
@@ -150,14 +153,14 @@ Model::Model() {}
 Model::Model(Mesh *mesh){
     this->mesh = mesh;
 }
-Model::Model(Mesh *mesh, Material *mat, mat4 model){
+Model::Model(Mesh *mesh, Material *mats, mat4 model){
     this->mesh = mesh;
-    this->mat = mat;
+    this->mats = mats;
     this->model = model;
 }
 
-void Model::LinkMaterial(Material *mat){
-    this->mat = mat;
+void Model::LinkMaterial(Material *mats){
+    this->mats = mats;
 }
 
 void Model::LinkMatrix(mat4 model){

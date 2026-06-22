@@ -20,6 +20,9 @@ class V2F{
 
 class FragmentShader{
     public:
+        SceneLighting *light_info;
+        vec3 cam_pos;
+
         FragmentShader();
         virtual vec3 Evaluate(vertex2D v);
 };
@@ -63,8 +66,11 @@ class NormalShader : public FragmentShader{
 class BlinnPhongShader : public FragmentShader{
     public:
         Texture *tex;
-        SceneLighting *light_info;
-        vec3 cam_pos;
+
+        vec3 ambient;
+        vec3 diffuse;
+        vec3 specular;
+        float shininess;
 
         BlinnPhongShader();
         BlinnPhongShader(Texture *tex, SceneLighting *light_info, vec3 cam_pos);

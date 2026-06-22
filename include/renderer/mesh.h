@@ -30,13 +30,13 @@ class Mesh{
 class Model{
     public:
         Mesh *mesh;
-        Material *mat;
+        Material *mats;
         mat4 model;
 
         Model();
         Model(Mesh *mesh);
-        Model(Mesh *mesh, Material *mat, mat4 model);
-        void LinkMaterial(Material *p_mat);
+        Model(Mesh *mesh, Material *mats, mat4 model);
+        void LinkMaterial(Material *mats);
         void LinkMatrix(mat4 model);
 };
 
