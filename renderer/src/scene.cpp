@@ -253,45 +253,46 @@ Scene::Scene(const std::string &filename){
             std::map<std::string, std::any> next_vert = std::any_cast<std::map<std::string, std::any>>(next_material["vert"]);
             std::map<std::string, std::any> next_frag = std::any_cast<std::map<std::string, std::any>>(next_material["frag"]);
 
+            Shader shader;
             VertexShader vert;
             FragmentShader frag;
             
             std::string vert_type = std::any_cast<std::string>(next_vert["type"]);
             if (vert_type == "standard"){
-                StandardVertex st_vert = StandardVertex();
-                st_vert.view = main_cam.view;
-                st_vert.proj = main_cam.proj;
-                vert = st_vert;
+                vert = StandardVertex();
+                shader.params.SetMatrix("view", main_cam.view);
+                shader.params.SetMatrix("proj", main_cam.proj);
             }
 
             std::string frag_type = std::any_cast<std::string>(next_frag["type"]);
             if (frag_type == "blinn_phong"){
-                frag = BlinnPhongShader(
-                    &textures[(int)std::any_cast<float>(next_frag["texture"])],
-                    &lighting_info,
-                    main_cam.position
-                );
+                frag = BlinnPhongShader();
+                shader.params.SetTexture("tex", &textures[(int)std::any_cast<float>(next_frag["texture"])]);
+                shader.params.SetLighting("light_info", &lighting_info);
+                shader.params.SetVector3("cam_pos", main_cam.position);
             }
             else if (frag_type == "texture"){
-                frag = TextureShader(
-                    &textures[(int)std::any_cast<float>(next_frag["texture"])]
-                );
+                frag = TextureShader();
+                shader.params.SetTexture("tex", &textures[(int)std::any_cast<float>(next_frag["texture"])]);
             }
             else if (frag_type == "normal"){
                 frag = NormalShader();
             }
             else if (frag_type == "color"){
                 std::vector<std::any> col_vector = std::any_cast<std::vector<std::any>>(next_frag["color"]);
-                frag = ColorShader(
-                    vec3(
+                vec3 col = vec3(
                         std::any_cast<float>(col_vector[0]),
                         std::any_cast<float>(col_vector[1]),
                         std::any_cast<float>(col_vector[2]) 
-                    )
                 );
+
+                frag = ColorShader();
+                shader.params.SetVector3("col", col);
             }
 
-            Shader shader = Shader(&vert, &frag);
+            shader.SetVertex(&vert);
+            shader.SetFragment(&frag);
+
             materials[i] = Material(&shader);
         }
     }
@@ -349,7 +350,7 @@ Scene::Scene(const std::string &filename){
 
             models[i] = Model(
                 &mesh,
-                &materials[(int)std::any_cast<float>(next_model["material"])],
+                new MaterialStore(), // TODO
                 GetModelMatrix(
                     position,
                     scale,
@@ -365,14 +366,15 @@ Scene::Scene(const std::string &filename){
     }
 }
 
+// TODO
 void Scene::Draw(FrameBuffer *buffer){
     frustum cam_frustum = frustum(main_cam);
     for (int i = 0; i < num_models; i++){
         // Frustum Culling
         sphere bounding_sphere = models[i].mesh->GetBoundingSphere();
-        bounding_sphere.c = models[i].model * v3tov4(bounding_sphere.c, 1.0f);
+        bounding_sphere.c = models[i].matrix * v3tov4(bounding_sphere.c, 1.0f);
         if (!FrustumSphereIntersect(cam_frustum, bounding_sphere)) continue;
 
-        DrawMesh(*models[i].mesh, buffer, models[i].mats->shader);
+        DrawModel(models[i].mesh, buffer);
     }
 }

@@ -26,6 +26,7 @@ class MaterialStore{
         MaterialStore();
         Material Get(const std::string &name);
         void LoadMaterials(const std::string &filename);
+        void Add(Material *mat, const std::string &name);
         friend std::ostream& operator<<(std::ostream &os, const MaterialStore &m);
 
     private:

@@ -101,6 +101,18 @@ vec4 operator*(const mat4 &m, const vec4 &v){
         (m.cells[3][0] * v.x) + (m.cells[3][1] * v.y) + (m.cells[3][2] * v.z) + (m.cells[3][3] * v.w)
     );
 }
+std::ostream& operator<<(std::ostream &os, const mat4 &m){
+    os << '(';
+    for (int i = 0; i < 4; i++){
+        for (int j = 0; j < 4; j++){
+            os << m.cells[i][j];
+            if (j != 3) os << ", ";
+        }
+        os << '\n';
+    }
+    os << ')';
+    return os;
+}
 
 // Returns determinant of the 3x3 submatrix formed by removing row i and column j from m
 float det3x3(mat4 m, int i, int j){

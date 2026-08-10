@@ -23,6 +23,7 @@ mat4 operator*(const mat4 &m, float f);
 mat4 operator*(const mat4 &m, int i);
 mat4 operator*(const mat4 &m1, const mat4 &m2);
 vec4 operator*(const mat4 &m, const vec4 &v);
+std::ostream& operator<<(std::ostream &os, const mat4 &m);
 
 mat4 transpose(mat4 m);
 mat4 cofactor(mat4 m);

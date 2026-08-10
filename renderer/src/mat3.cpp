@@ -104,6 +104,18 @@ vec3 operator*(const mat3 &m, const vec3 &v){
         (m.cells[2][0] * v.x) + (m.cells[2][1] * v.y) + (m.cells[2][2] * v.z)
     );
 }
+std::ostream& operator<<(std::ostream &os, const mat3 &m){
+    os << '(';
+    for (int i = 0; i < 3; i++){
+        for (int j = 0; j < 3; j++){
+            os << m.cells[i][j];
+            if (j != 3) os << ", ";
+        }
+        os << '\n';
+    }
+    os << ')';
+    return os;
+}
 
 // Returns determinant of the 2x2 submatrix formed by removing row i and column j from m
 float det2x2(mat3 m, int i, int j){

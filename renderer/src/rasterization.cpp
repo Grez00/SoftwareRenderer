@@ -72,8 +72,8 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader){
     vec2 uv_20_diff = tri.vertices[2].uv - tri.vertices[0].uv;
     vec3 normal_10_diff = tri.vertices[1].normal - tri.vertices[0].normal;
     vec3 normal_20_diff = tri.vertices[2].normal - tri.vertices[0].normal;
-    vec3 pos_10_diff = shader->vertex->varyings.world_pos[1] - shader->vertex->varyings.world_pos[0];
-    vec3 pos_20_diff = shader->vertex->varyings.world_pos[2] - shader->vertex->varyings.world_pos[0];
+    vec3 pos_10_diff = shader->varyings.world_pos[1] - shader->varyings.world_pos[0];
+    vec3 pos_20_diff = shader->varyings.world_pos[2] - shader->varyings.world_pos[0];
 
     float d_area = 1.0f/Edge(v1, v2, vec2(v0));
 
@@ -102,10 +102,10 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader){
 
                     vec2 uv = (tri.vertices[0].uv + uv_10_diff*b1 + uv_20_diff*b2);
                     vec3 normal = (tri.vertices[0].normal + normal_10_diff*b1 + normal_20_diff*b2);
-                    vec3 position = (shader->vertex->varyings.world_pos[0] + pos_10_diff*b1 + pos_20_diff*b2);
+                    vec3 position = (shader->varyings.world_pos[0] + pos_10_diff*b1 + pos_20_diff*b2);
                     
                     buffer->SetDepthBuffer(x, y, depth);
-                    buffer->SetRenderBuffer(x, y, shader->frag->Evaluate(vertex2D(position, normal, uv)));
+                    buffer->SetRenderBuffer(x, y, shader->EvaluateFragment(vertex2D(position, normal, uv)));
                 }
             }
 

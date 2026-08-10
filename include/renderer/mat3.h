@@ -25,6 +25,7 @@ mat3 operator*(const mat3 &m, float f);
 mat3 operator*(const mat3 &m, int i);
 mat3 operator*(const mat3 &m1, const mat3 &m2);
 vec3 operator*(const mat3 &m, const vec3 &v);
+std::ostream& operator<<(std::ostream &os, const mat3 &m);
 
 mat3 transpose(mat3 m);
 mat3 cofactor(mat3 m);

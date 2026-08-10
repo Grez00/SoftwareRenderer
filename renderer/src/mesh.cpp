@@ -66,9 +66,6 @@ Mesh::Mesh(const std::string &filename){
                 }
             }
         }
-        else if (tokens[0] == "use_mtl"){
-
-        }
     }
     file.close();
 
@@ -149,20 +146,132 @@ sphere Mesh::GetBoundingSphere(){
     return sphere(center, radius);
 }
 
+Model::Model(const std::string &filename){
+    std::string file_end = ".obj";
+    if (filename.length() < file_end.length() || filename.compare(filename.length() - file_end.length(), file_end.length(), file_end)){
+        printf("LoadMesh: Error, invalid file type (got: %s)\n", filename.c_str());
+        return;
+    }
+
+    std::string line;
+    std::ifstream file(filename);
+
+    if (!file.is_open()){
+        printf("LoadMesh: Error, failed to open file, filename: %s\n", filename.c_str());
+        return;
+    }
+
+    vec4 *p_positions;
+    vec3 *p_normals;
+    vec2 *p_uvs;
+    vec3 *p_indices;
+
+    std::vector<vec4> seen_pos = {};
+    std::vector<vec3> seen_normals = {};
+    std::vector<vec2> seen_uvs = {};
+    std::vector<vec3> seen_indices = {};
+
+    mats = new MaterialStore();
+    index_to_mat = std::map<int, std::string>();
+
+    // Search for .mtl file
+
+    while (getline(file, line)){
+        std::vector<std::string> tokens = split(line, " ");
+
+        if (tokens[0] == "mtllib"){
+            mats->LoadMaterials(tokens[1]);
+            break;
+        }
+        else if (tokens[0] == "o"){
+            break;
+        }
+    }
+
+    // Load mesh
+
+    while(getline(file, line)){
+        std::vector<std::string> tokens = split(line, " ");
+
+        if (tokens[0] == "v"){
+            seen_pos.push_back(vec4(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3])));
+        }
+        else if (tokens[0] == "vn"){
+            seen_normals.push_back(vec3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3])));
+        }
+        else if (tokens[0] == "vt"){
+            seen_uvs.push_back(vec2(std::stof(tokens[1]), std::stof(tokens[2])));
+        }
+        else if (tokens[0] == "usemtl"){
+            index_to_mat[seen_indices.size()] = tokens[1];
+        }
+        else if (tokens[0] == "f"){
+            std::vector<std::string> face_tokens;
+            for (int i = 1; i < 4; i++){
+                face_tokens = split(tokens[i], "/");
+                switch (face_tokens.size()){
+                    case 3:
+                        seen_indices.push_back(vec3(std::stof(face_tokens[0])-1, std::stof(face_tokens[1])-1, std::stof(face_tokens[2])-1));
+                        break;
+                    case 2:
+                        seen_indices.push_back(vec3(std::stof(face_tokens[0])-1, std::stof(face_tokens[1])-1, 0));
+                        break;
+                    case 1:
+                        seen_indices.push_back(vec3(std::stof(face_tokens[0])-1, 0, 0));
+                        break;
+                    default:
+                        seen_indices.push_back(vec3());
+                        break;
+                }
+            }
+        }
+    }
+    file.close();
+
+    p_positions = new vec4[seen_pos.size()];
+    std::copy(seen_pos.begin(), seen_pos.end(), p_positions);
+
+    p_indices = new vec3[seen_indices.size()];
+    std::copy(seen_indices.begin(), seen_indices.end(), p_indices);
+
+    if (seen_normals.size() == 0){
+        p_normals = new vec3[1];
+        p_normals[0] = vec3();
+    }
+    else{
+        p_normals = new vec3[seen_normals.size()];
+        std::copy(seen_normals.begin(), seen_normals.end(), p_normals);
+    }
+
+    if (seen_uvs.size() == 0){
+        p_uvs = new vec2[1];
+        p_uvs[0] = vec2();
+    }
+    else{
+        p_uvs = new vec2[seen_uvs.size()];
+        std::copy(seen_uvs.begin(), seen_uvs.end(), p_uvs);
+    }
+
+    mesh = new Mesh(p_positions, p_normals, p_uvs, p_indices, seen_pos.size(), seen_indices.size());
+}
+
 Model::Model() {}
 Model::Model(Mesh *mesh){
     this->mesh = mesh;
 }
-Model::Model(Mesh *mesh, Material *mats, mat4 model){
+Model::Model(Mesh *mesh, MaterialStore *mats, mat4 model){
     this->mesh = mesh;
     this->mats = mats;
-    this->model = model;
+    this->matrix = model;
 }
 
-void Model::LinkMaterial(Material *mats){
+void Model::LinkMaterials(MaterialStore *mats){
     this->mats = mats;
+}
+void Model::LinkMaterial(Material *mat, const std::string &name){
+    mats->Add(mat, name);
 }
 
 void Model::LinkMatrix(mat4 model){
-    this->model = model;
+    this->matrix = model;
 }

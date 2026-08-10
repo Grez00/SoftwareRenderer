@@ -18,80 +18,98 @@ class V2F{
         V2F();
 };
 
+class ShaderParams{
+    public:
+        ShaderParams();
+
+        int GetInt(const std::string &name);
+        float GetFloat(const std::string &name);
+        vec4 GetVector4(const std::string &name);
+        vec3 GetVector3(const std::string &name);
+        mat4 GetMatrix(const std::string &name);
+        Texture GetTexture(const std::string &name);
+        SceneLighting GetLighting(const std::string &name);
+
+        void SetInt(const std::string &name, int i);
+        void SetFloat(const std::string &name, float f);
+        void SetVector4(const std::string &name, vec4 v);
+        void SetVector3(const std::string &name, vec3 c);
+        void SetMatrix(const std::string &name, mat4 m);
+        void SetTexture(const std::string &name, Texture *tex);
+        void SetLighting(const std::string &name, SceneLighting *lighting_info);
+
+    private:
+        std::map<std::string, std::any> params;
+};
+
 class FragmentShader{
     public:
-        SceneLighting *light_info;
-        vec3 cam_pos;
-
         FragmentShader();
-        virtual vec3 Evaluate(vertex2D v);
+        virtual vec3 Evaluate(vertex2D v, V2F varyings, ShaderParams *params);
 };
 
 class VertexShader{
     public:
-        V2F varyings;
-
         VertexShader();
-        virtual vertex Evaluate(vertex v);
-        virtual Triangle3D EvaluateTriangle(Triangle3D tri);
+        virtual vertex Evaluate(vertex v, ShaderParams *params);
+        virtual Triangle3D EvaluateTriangle(Triangle3D tri, ShaderParams *params, V2F *V2F);
 };
 
 class Shader{
     public:
-        VertexShader *vertex;
-        FragmentShader *frag;
+        ShaderParams params;
+        V2F varyings;
 
         Shader();
-        Shader(VertexShader *vertex, FragmentShader *frag);
+        Shader(VertexShader *vert, FragmentShader *frag);
+
+        void SetVertex(VertexShader *vert);
+        void SetFragment(FragmentShader *frag);
+
+        vec3 EvaluateFragment(vertex2D v);
+        vertex EvaluateVertex(vertex v);
+        Triangle3D EvaluateTriangle(Triangle3D tri);
+
+    private:
+        VertexShader *vert;
+        FragmentShader *frag;
 };
 
 class StandardVertex : public VertexShader{
     public:
-        mat4 model;
-        mat4 view;
-        mat4 proj;
-
         StandardVertex();
-        StandardVertex(mat4 model, mat4 view, mat4 proj);
-        vertex Evaluate(vertex v) override;
-        Triangle3D EvaluateTriangle(Triangle3D tri) override;
+        vertex Evaluate(vertex v, ShaderParams *params) override;
+        Triangle3D EvaluateTriangle(Triangle3D tri, ShaderParams *params, V2F *V2F) override;
 };
 
 class NormalShader : public FragmentShader{
     public:
         NormalShader();
-        vec3 Evaluate(vertex2D v) override;
+        vec3 Evaluate(vertex2D v, V2F varyings, ShaderParams *params) override;
+};
+
+class MaterialShader : public FragmentShader {
+    public:
+        MaterialShader();
+        vec3 Evaluate(vertex2D v, V2F varyings, ShaderParams *params) override;
 };
 
 class BlinnPhongShader : public FragmentShader{
     public:
-        Texture *tex;
-
-        vec3 ambient;
-        vec3 diffuse;
-        vec3 specular;
-        float shininess;
-
         BlinnPhongShader();
-        BlinnPhongShader(Texture *tex, SceneLighting *light_info, vec3 cam_pos);
-        vec3 Evaluate(vertex2D v) override;
+        vec3 Evaluate(vertex2D v, V2F varyings, ShaderParams *params) override;
 };
 
 class TextureShader : public FragmentShader{
     public:
-        Texture *tex;
-
         TextureShader();
-        TextureShader(Texture *tex);
-        vec3 Evaluate(vertex2D v) override;
+        vec3 Evaluate(vertex2D v, V2F varyings, ShaderParams *params) override;
 };
 
 class ColorShader : public FragmentShader{
     public:
-        vec3 col;
-
-        ColorShader(vec3 col);
-        vec3 Evaluate(vertex2D v) override; 
+        ColorShader();
+        vec3 Evaluate(vertex2D v, V2F varyings, ShaderParams *params) override; 
 };
 
 #endif

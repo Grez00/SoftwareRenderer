@@ -169,19 +169,23 @@ int main(int argc, char *argv[]){
     StandardVertex vert = StandardVertex();
 
     BlinnPhongShader bp_frag = BlinnPhongShader();
-    TextureShader tex_frag = TextureShader(&tex);
+    MaterialShader mat_frag = MaterialShader();
+    TextureShader tex_frag = TextureShader();
     NormalShader normal_frag = NormalShader();
-
-    ColorShader blue_frag = ColorShader(vec3(0, 0, 1));
-    ColorShader red_frag = ColorShader(vec3(1, 0, 0));
-    ColorShader green_frag = ColorShader(vec3(0, 1, 0));
+    ColorShader color_frag = ColorShader();
 
     Shader shader = Shader();
-    shader.frag = &bp_frag;
-    shader.vertex = &vert;
+    shader.SetFragment(&mat_frag);
+    shader.SetVertex(&vert);
 
-    MaterialStore materials = MaterialStore();
-    materials.LoadMaterials("assets/materials/multicube.mtl");
+    shader.params.SetTexture("tex", &tex);
+    shader.params.SetLighting("light_info", &lighting_info);
+    shader.params.SetVector3("ambient", vec3(0.1f, 0.1f, 0.1f));
+    shader.params.SetVector3("diffuse", vec3(1.0f, 1.0f, 1.0f));
+    shader.params.SetVector3("specular", vec3(1.0f, 1.0f, 1.0f));
+    shader.params.SetFloat("shininess", 1.0f);
+
+    Model cube_object = Model("assets/models/multicube.obj");
 
     // Set up time
     double current_time = 0;
@@ -221,16 +225,13 @@ int main(int argc, char *argv[]){
         mat4 cube_model = 
             GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
 
-        bp_frag.tex = &tex;
-        bp_frag.cam_pos = secondary_cam.position;
-        bp_frag.light_info = &lighting_info;
-        shader.frag = &bp_frag;
+        shader.params.SetMatrix("model", cube_model);
+        shader.params.SetMatrix("view", view);
+        shader.params.SetMatrix("proj", proj);
 
-        vert.model = cube_model;
-        vert.view = view;
-        vert.proj = proj;
-        shader.vertex = &vert;
-        DrawMesh(king, &render_buffer, &shader);
+        shader.params.SetVector3("cam_pos", secondary_cam.position);
+
+        DrawModel(cube_object, &render_buffer, &shader);
 
         // Empty buffer to Renderer
         BlitBuffer(render_buffer, sdl_buffer, renderer);

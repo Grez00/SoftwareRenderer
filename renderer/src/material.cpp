@@ -11,11 +11,11 @@ void Material::Reconstruct(){
     Shader shader = Shader(&vert, &frag);
     this->shader = &shader;
 
-    frag.shininess = this->shininess;
-    frag.ambient = this->ambient;
-    frag.diffuse = this->diffuse;
-    frag.specular = this->specular;
-    frag.tex = this->tex;
+    shader.params.SetFloat("shininess", this->shininess);
+    shader.params.SetVector3("ambient", this->ambient);
+    shader.params.SetVector3("diffuse", this->diffuse);
+    shader.params.SetVector3("specular", this->specular);
+    shader.params.SetTexture("tex", this->tex);
 }
 
 std::map<std::string, Material> ParseMTL(const std::string &filename){
@@ -36,7 +36,6 @@ std::map<std::string, Material> ParseMTL(const std::string &filename){
     }
 
     std::string current;
-    Texture tex;
     while(getline(file, line)){
         std::vector<std::string> tokens = split(line, " ");
 
@@ -57,8 +56,7 @@ std::map<std::string, Material> ParseMTL(const std::string &filename){
             output[current].specular = vec3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));;
         }
         else if (tokens[0] == "map_Kd"){
-            tex = Texture(tokens[1]);
-            output[current].tex = &tex;
+            output[current].tex = new Texture(tokens[1]);
         }
     }
     file.close();
@@ -79,9 +77,17 @@ void MaterialStore::LoadMaterials(const std::string &filename){
     materials.merge(ParseMTL(filename));
 }
 
+void MaterialStore::Add(Material *mat, const std::string &name){
+    materials[name] = *mat;
+}
+
 std::ostream& operator<<(std::ostream &os, const MaterialStore &m){
     for (auto const& [name, material] : m.materials){
         os << name << ":" << '\n';
+        os << '\t' << "ambient: " << material.ambient << '\n';
+        os << '\t' << "diffuse: " << material.diffuse << '\n';
+        os << '\t' << "specular: " << material.specular << '\n';
+        os << '\t' << "shininess: " << material.shininess << '\n';
     }
     return os;
 }
