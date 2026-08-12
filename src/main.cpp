@@ -166,24 +166,18 @@ int main(int argc, char *argv[]){
     SceneLighting lighting_info = SceneLighting(dir_lights, point_lights, 1, 1);
 
     // Create shaders
-    StandardVertex vert = StandardVertex();
-
     BlinnPhongShader bp_frag = BlinnPhongShader();
     MaterialShader mat_frag = MaterialShader();
     TextureShader tex_frag = TextureShader();
     NormalShader normal_frag = NormalShader();
     ColorShader color_frag = ColorShader();
 
-    Shader shader = Shader();
-    shader.SetFragment(&mat_frag);
-    shader.SetVertex(&vert);
-
-    shader.params.SetTexture("tex", &tex);
-    shader.params.SetLighting("light_info", &lighting_info);
-    shader.params.SetVector3("ambient", vec3(0.1f, 0.1f, 0.1f));
-    shader.params.SetVector3("diffuse", vec3(1.0f, 1.0f, 1.0f));
-    shader.params.SetVector3("specular", vec3(1.0f, 1.0f, 1.0f));
-    shader.params.SetFloat("shininess", 1.0f);
+    bp_frag.tex = &tex;
+    bp_frag.light_info = &lighting_info;
+    bp_frag.ambient = vec3(0.1f, 0.1f, 0.1f);
+    bp_frag.diffuse = vec3(1.0f, 1.0f, 1.0f);
+    bp_frag.specular = vec3(1.0f, 1.0f, 1.0f);
+    bp_frag.shininess = 1.0f;
 
     Model cube_object = Model("assets/models/multicube.obj");
 
@@ -225,13 +219,14 @@ int main(int argc, char *argv[]){
         mat4 cube_model = 
             GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
 
-        shader.params.SetMatrix("model", cube_model);
-        shader.params.SetMatrix("view", view);
-        shader.params.SetMatrix("proj", proj);
+        bp_frag.model = cube_model;
+        bp_frag.view = view;
+        bp_frag.proj = proj;
 
-        shader.params.SetVector3("cam_pos", secondary_cam.position);
+        bp_frag.cam_pos = secondary_cam.position;
 
-        DrawModel(cube_object, &render_buffer, &shader);
+        cube_object.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
+        DrawModel(cube_object, &render_buffer);
 
         // Empty buffer to Renderer
         BlitBuffer(render_buffer, sdl_buffer, renderer);

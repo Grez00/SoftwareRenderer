@@ -1,122 +1,23 @@
 #include "renderer/shader.h"
 
-// VARYINGS
-
-V2F::V2F(){
+Shader::Shader() {
     world_pos = new vec3[3];
 }
 
-// SHADER PARAMS
-
-ShaderParams::ShaderParams(){
-    params = std::map<std::string, std::any>();
-}
-
-#define SHADERGET(type)                                           \
-    if (params.find(name) == params.end()){                       \
-        printf("ShaderParams: Error, failed to find %s", name);   \
-        return type();                                            \
-    }                                                             \
-                                                                  \
-    std::any result = params[name];                               \
-    if (result.has_value()){                                      \
-        return std::any_cast<type>(result);                       \
-    }                                                             \
-    else{                                                         \
-        printf("ShaderParams: Error, %s has no value", name);     \
-        return type();                                            \
-    }                                                             \
-
-int ShaderParams::GetInt(const std::string &name) { SHADERGET(int) }
-float ShaderParams::GetFloat(const std::string &name) { SHADERGET(float) }
-vec4 ShaderParams::GetVector4(const std::string &name) { SHADERGET(vec4) }
-vec3 ShaderParams::GetVector3(const std::string &name) { SHADERGET(vec3) }
-mat4 ShaderParams::GetMatrix(const std::string &name) { SHADERGET(mat4) }
-Texture ShaderParams::GetTexture(const std::string &name) { SHADERGET(Texture) }
-SceneLighting ShaderParams::GetLighting(const std::string &name) { SHADERGET(SceneLighting) }
-
-void ShaderParams::SetInt(const std::string &name, int i){
-    params[name] = std::any(i);
-}
-void ShaderParams::SetFloat(const std::string &name, float f){
-    params[name] = std::any(f);
-}
-void ShaderParams::SetVector4(const std::string &name, vec4 v){
-    params[name] = std::any(v);
-}
-void ShaderParams::SetVector3(const std::string &name, vec3 c){
-    params[name] = std::any(c);
-}
-void ShaderParams::SetMatrix(const std::string &name, mat4 m){
-    params[name] = std::any(m);
-}
-void ShaderParams::SetTexture(const std::string &name, Texture *tex){
-    params[name] = std::any(*tex);
-}
-void ShaderParams::SetLighting(const std::string &name, SceneLighting *lighting_info){
-    params[name] = std::any(*lighting_info);
-}
-
-// COMBINED SHADER
-
-Shader::Shader(VertexShader *vertex, FragmentShader *frag){
-    this->vert = vertex;
-    this->frag = frag;
-}
-
-Shader::Shader(){
-    vert = new VertexShader();
-    frag = new FragmentShader();
-}
-
-void Shader::SetVertex(VertexShader *vert){
-    this->vert = vert;
-}
-
-void Shader::SetFragment(FragmentShader *frag){
-    this->frag = frag;
-}
-
 vec3 Shader::EvaluateFragment(vertex2D v){
-    return frag->Evaluate(v, varyings, &params);
+    return vec3(1, 0, 1);
 }
 
 vertex Shader::EvaluateVertex(vertex v){
-    return vert->Evaluate(v, &params);
-}
-
-Triangle3D Shader::EvaluateTriangle(Triangle3D tri){
-    return vert->EvaluateTriangle(tri, &params, &varyings);
-}
-
-// VERTEX SHADERS
-
-VertexShader::VertexShader() {};
-vertex VertexShader::Evaluate(vertex v, ShaderParams *params){
-    return v;
-}
-Triangle3D VertexShader::EvaluateTriangle(Triangle3D tri, ShaderParams *params, V2F *V2F){
-    return tri;
-}
-
-StandardVertex::StandardVertex() {};
-vertex StandardVertex::Evaluate(vertex v, ShaderParams *params){
-    mat4 model = params->GetMatrix("model");
-    mat4 view = params->GetMatrix("view");
-    mat4 proj = params->GetMatrix("proj");
-
     mat4 M_V = view * model;
     mat3 id_M_V = mat3(transpose(inverse(M_V)));
     return vertex(proj * M_V * v.position, id_M_V * v.normal, v.uv);
 }
-Triangle3D StandardVertex::EvaluateTriangle(Triangle3D tri, ShaderParams *params, V2F *varyings){
-    mat4 model = params->GetMatrix("model");
-    mat4 view = params->GetMatrix("view");
-    mat4 proj = params->GetMatrix("proj");
 
-    varyings->world_pos[0] = vec3(model * tri.vertices[0].position);
-    varyings->world_pos[1] = vec3(model * tri.vertices[1].position);
-    varyings->world_pos[2] = vec3(model * tri.vertices[2].position);
+Triangle3D Shader::EvaluateTriangle(Triangle3D tri){
+    world_pos[0] = vec3(model * tri.vertices[0].position);
+    world_pos[1] = vec3(model * tri.vertices[1].position);
+    world_pos[2] = vec3(model * tri.vertices[2].position);
 
     mat4 M_V = view * model;
     mat4 M_V_P = proj * M_V;
@@ -129,62 +30,148 @@ Triangle3D StandardVertex::EvaluateTriangle(Triangle3D tri, ShaderParams *params
     );
 }
 
-// FRAGMENT SHADERS
-
-FragmentShader::FragmentShader() {};
-vec3 FragmentShader::Evaluate(vertex2D v, V2F varyings, ShaderParams *params){
-    return vec3(1, 0, 1);
-}
-
 NormalShader::NormalShader() {}
-vec3 NormalShader::Evaluate(vertex2D v, V2F varyings, ShaderParams *params){
+vec3 NormalShader::EvaluateFragment(vertex2D v){
     return v.normal;
 }
 
 MaterialShader::MaterialShader() {}
-vec3 MaterialShader::Evaluate(vertex2D v, V2F varyings, ShaderParams *params){
-    vec3 ambient = params->GetVector3("ambient");
-    vec3 diffuse = params->GetVector3("diffuse");
-    vec3 specular = params->GetVector3("specular");
-
+MaterialShader::MaterialShader(vec3 ambient, vec3 diffuse, vec3 specular, float shininess){
+    this->ambient = ambient;
+    this->diffuse = diffuse;
+    this->specular = specular;
+    this->shininess = shininess;
+}
+vec3 MaterialShader::EvaluateFragment(vertex2D v){
     return vec3(1, 1, 1) * ambient * diffuse * specular;
 }
 
 BlinnPhongShader::BlinnPhongShader() {}
-vec3 BlinnPhongShader::Evaluate(vertex2D v, V2F varyings, ShaderParams *params){
-    Texture tex = params->GetTexture("tex");
-    SceneLighting light_info = params->GetLighting("light_info");
-    vec3 cam_pos = params->GetVector3("cam_pos");
+BlinnPhongShader::BlinnPhongShader(Texture *tex){
+    this->tex = tex;
+}
+BlinnPhongShader::BlinnPhongShader(vec3 ambient, vec3 diffuse, vec3 specular, float shininess, Texture *tex){
+    this->ambient = ambient;
+    this->diffuse = diffuse;
+    this->specular = specular;
+    this->shininess = shininess;
+    this->tex = tex;
+}
+vec3 BlinnPhongShader::EvaluateFragment(vertex2D v){
+    vec3 tex_col = vec3(1, 1, 1);
+    if (tex != NULL) tex_col = tex->sample(v.uv);
 
-    vec3 ambient = params->GetVector3("ambient");
-    vec3 diffuse = params->GetVector3("diffuse");
-    vec3 specular = params->GetVector3("specular");
-    float shininess = params->GetFloat("shininess");
-
-    vec3 tex_col = tex.sample(v.uv);
     vec3 view_dir = normalize(cam_pos - v.position);
 
     vec3 col = vec3();
-    for (int i = 0; i < light_info.num_dir_lights; i++){
-        col += light_info.dir_lights[i].Evaluate(v.normal, view_dir, ambient, diffuse, specular, shininess);
+    for (int i = 0; i < light_info->num_dir_lights; i++){
+        col += light_info->dir_lights[i].Evaluate(v.normal, view_dir, ambient, diffuse, specular, shininess);
     }
-    for (int i = 0; i < light_info.num_p_lights; i++){
-        col += light_info.p_lights[i].Evaluate(v.normal, view_dir, v.position, ambient, diffuse, specular, shininess);
+    for (int i = 0; i < light_info->num_p_lights; i++){
+        col += light_info->p_lights[i].Evaluate(v.normal, view_dir, v.position, ambient, diffuse, specular, shininess);
     }
 
     return tex_col * col;
 }
 
 TextureShader::TextureShader() {}
-vec3 TextureShader::Evaluate(vertex2D v, V2F varyings, ShaderParams *params){
-    Texture tex = params->GetTexture("tex");
-
-    return tex.sample(v.uv);
+TextureShader::TextureShader(Texture *tex){
+    this->tex = tex;
+}
+vec3 TextureShader::EvaluateFragment(vertex2D v){
+    return tex->sample(v.uv);
 }
 
-ColorShader::ColorShader(){}
-vec3 ColorShader::Evaluate(vertex2D v, V2F varyings, ShaderParams *params){
-    vec3 col = params->GetVector3("col");
-
+ColorShader::ColorShader() {
+    col = vec3(1, 0, 1);
+}
+ColorShader::ColorShader(vec3 col){
+    this->col = col;
+}
+vec3 ColorShader::EvaluateFragment(vertex2D v){
     return col;
+}
+
+// SHADER STORE
+
+std::map<std::string, Shader*> ParseMTL(const std::string &filename){
+    std::map<std::string, Shader*> output;
+
+    std::string file_end = ".mtl";
+    if (filename.length() < file_end.length() || filename.compare(filename.length() - file_end.length(), file_end.length(), file_end)){
+        printf("ParseMTL: Error, invalid file type (got: %s)\n", filename.c_str());
+        return output;
+    }
+
+    std::string line;
+    std::ifstream file(filename);
+
+    if (!file.is_open()){
+        printf("ParseMTL: Error, failed to open file, filename: %s\n", filename.c_str());
+        return output;
+    }
+
+    BlinnPhongShader *current;
+    while(getline(file, line)){
+        std::vector<std::string> tokens = split(line, " ");
+
+        if (tokens[0] == "newmtl"){
+            current = new BlinnPhongShader();
+            current->tex = new Texture();
+            output[tokens[1]] = current;
+        }
+        else if (tokens[0] == "Ns"){
+            current->shininess = std::stof(tokens[1]);
+        }
+        else if (tokens[0] == "Ka"){
+            current->ambient = vec3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+        }
+        else if (tokens[0] == "Kd"){
+            current->diffuse = vec3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));;
+        }
+        else if (tokens[0] == "Ks"){
+            current->specular = vec3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));;
+        }
+        else if (tokens[0] == "map_Kd"){
+            current->tex = new Texture(tokens[1]);
+        }
+    }
+    file.close();
+
+    return output;
+}
+
+ShaderStore::ShaderStore(){}
+
+ShaderStore::ShaderStore(std::map<std::string, Shader*> shaders){
+    this->shaders = shaders;
+}
+
+Shader* ShaderStore::Get(const std::string &name){
+    return shaders[name];
+}
+
+void ShaderStore::LoadShaders(const std::string &filename){
+    shaders.merge(ParseMTL(filename));
+}
+
+void ShaderStore::Add(Shader *mat, const std::string &name){
+    shaders[name] = mat;
+}
+
+void ShaderStore::SetSceneInfo(mat4 model, mat4 view, mat4 proj, vec3 cam_pos, SceneLighting *light_info){
+    for (auto const &[name, shader] : shaders){
+        shader->model = model;
+        shader->view = view;
+        shader->proj = proj;
+        shader->cam_pos = cam_pos;
+        shader->light_info = light_info;
+    }
+}
+
+std::ostream& operator<<(std::ostream &os, const ShaderStore &m){
+    for (auto const& [name, shader] : m.shaders){
+        os << name << '\n';
+    }
+    return os;
 }

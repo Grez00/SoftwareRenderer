@@ -458,15 +458,11 @@ void DrawMesh(Mesh mesh, FrameBuffer *buffer, Shader *shader){
     }
 }
 
-void DrawModel(Model model, FrameBuffer *buffer, Shader *shader){
+void DrawModel(Model model, FrameBuffer *buffer){
+    Shader *shader = new Shader();
     for (int i = 0; i < model.mesh->index_count; i+=3){
         if (model.index_to_mat.find(i) != model.index_to_mat.end()){
-            Material next_mat = model.mats->Get(model.index_to_mat[i]);
-
-            shader->params.SetTexture("tex", next_mat.tex);
-            shader->params.SetVector3("ambient", next_mat.ambient);
-            shader->params.SetVector3("diffuse", next_mat.diffuse);
-            shader->params.SetVector3("specular", next_mat.specular);
+            shader = model.shaders->Get(model.index_to_mat[i]);
         }
 
         DrawTriangle(

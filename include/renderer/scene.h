@@ -30,7 +30,7 @@ class Scene{
         Texture *textures;
 
         int num_mats;
-        Material *materials;
+        Shader *shaders;
 
         Scene(const std::string &filename);
 

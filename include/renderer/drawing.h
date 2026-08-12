@@ -57,7 +57,7 @@ void DrawTriangles(vertex vertices[], int vert_count, RenderInfo render_info);
 void DrawTrianglesIndexed(vertex vertices[], int indices[], int vert_count, int index_count, RenderInfo *render_info);
 void DrawTriangleStrips(vertex vertices[], int vert_count, RenderInfo render_info);
 void DrawMesh(Mesh mesh, FrameBuffer *buffer, Shader *shader);
-void DrawModel(Model model, FrameBuffer *buffer, Shader *shader);
+void DrawModel(Model model, FrameBuffer *buffer);
 void DrawMeshWireframe(Mesh mesh, FrameBuffer buffer, mat4 proj, mat4 model, vec3 col);
 
 #endif

@@ -7,9 +7,9 @@
 
 #include "vertex.h"
 #include "texture.h"
-#include "material.h"
 #include "helpers.h"
 #include "geometry.h"
+#include "shader.h"
 
 class Mesh{
     public:
@@ -30,16 +30,16 @@ class Mesh{
 class Model{
     public:
         Mesh *mesh;
-        MaterialStore *mats;
+        ShaderStore *shaders;
         mat4 matrix;
         std::map<int, std::string> index_to_mat;
 
         Model();
         Model(const std::string &filename);
         Model(Mesh *mesh);
-        Model(Mesh *mesh, MaterialStore *mats, mat4 model);
-        void LinkMaterials(MaterialStore *mats);
-        void LinkMaterial(Material *mat, const std::string &name);
+        Model(Mesh *mesh, ShaderStore *mats, mat4 model);
+        void LinkMaterials(ShaderStore *mats);
+        void LinkMaterial(Shader *shader, const std::string &name);
         void LinkMatrix(mat4 matrix);
 };
 

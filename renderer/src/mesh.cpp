@@ -171,7 +171,7 @@ Model::Model(const std::string &filename){
     std::vector<vec2> seen_uvs = {};
     std::vector<vec3> seen_indices = {};
 
-    mats = new MaterialStore();
+    shaders = new ShaderStore();
     index_to_mat = std::map<int, std::string>();
 
     // Search for .mtl file
@@ -180,7 +180,7 @@ Model::Model(const std::string &filename){
         std::vector<std::string> tokens = split(line, " ");
 
         if (tokens[0] == "mtllib"){
-            mats->LoadMaterials(tokens[1]);
+            shaders->LoadShaders(tokens[1]);
             break;
         }
         else if (tokens[0] == "o"){
@@ -259,17 +259,17 @@ Model::Model() {}
 Model::Model(Mesh *mesh){
     this->mesh = mesh;
 }
-Model::Model(Mesh *mesh, MaterialStore *mats, mat4 model){
+Model::Model(Mesh *mesh, ShaderStore *shaders, mat4 model){
     this->mesh = mesh;
-    this->mats = mats;
+    this->shaders = shaders;
     this->matrix = model;
 }
 
-void Model::LinkMaterials(MaterialStore *mats){
-    this->mats = mats;
+void Model::LinkMaterials(ShaderStore *shaders){
+    this->shaders = shaders;
 }
-void Model::LinkMaterial(Material *mat, const std::string &name){
-    mats->Add(mat, name);
+void Model::LinkMaterial(Shader *mat, const std::string &name){
+    shaders->Add(mat, name);
 }
 
 void Model::LinkMatrix(mat4 model){
