@@ -117,6 +117,10 @@ vec2 abs(vec2 v){
     return vec2(abs(v.x), abs(v.y));
 }
 
+vec2 lerp(vec2 v1, vec2 v2, float t){
+    return v1*t + v2*(1.0f-t);
+}
+
 // VECTOR 3
 
 vec3::vec3(float pX, float pY, float pZ){
@@ -230,6 +234,10 @@ vec3 abs(vec3 v){
     return vec3(abs(v.x), abs(v.y), abs(v.z));
 }
 
+vec3 lerp(vec3 v1, vec3 v2, float t){
+    return v1*t + v2*(1.0f-t);
+}
+
 // VECTOR 4
 
 vec4::vec4(float pX, float pY, float pZ, float pW){
@@ -339,6 +347,10 @@ float distance(vec4 v1, vec4 v2){
 
 vec4 abs(vec4 v){
     return vec4(abs(v.x), abs(v.y), abs(v.z), abs(v.w));
+}
+
+vec4 lerp(vec4 v1, vec4 v2, float t){
+    return v1*t + v2*(1.0f-t);
 }
 
 // HELPERS

@@ -34,10 +34,10 @@ void BlitBuffer(FrameBuffer buffer, SDL_Texture *sdl_buffer, SDL_Renderer *rende
     SDL_RenderTexture(renderer, sdl_buffer, NULL, NULL);
 }
 
-void BlitTexture(Texture tex, SDL_Renderer *renderer){
+void BlitTexture(Texture tex, SDL_Renderer *renderer, SAMPLE_TYPE type){
     for (int i = 0; i < SCR_HEIGHT; i++){
         for (int j = 0; j < SCR_WIDTH; j++){
-            vec3 sampled_col = tex.sample(vec2(float(j)/float(SCR_WIDTH), float(i)/float(SCR_HEIGHT)));
+            vec3 sampled_col = tex.sample(vec2(float(j)/float(SCR_WIDTH), float(i)/float(SCR_HEIGHT)), type);
             SDL_SetRenderDrawColor(
                 renderer, 
                 sampled_col.x * 255.0f, 
@@ -151,7 +151,7 @@ int main(int argc, char *argv[]){
     Mesh king = Mesh("assets/models/king.obj");
 
     // Load Textures
-    Texture tex = Texture("assets/images/computers.png");
+    Texture tex = Texture("assets/images/image.jpg");
 
     aabb test_box = aabb(vec3(0, 0, -7), vec3(2, 2, 2));
     vec3 tri_offset = vec3();
