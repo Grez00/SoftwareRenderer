@@ -10,6 +10,7 @@
 #include "mat3.h"
 #include "mat4.h"
 #include "mesh.h"
+#include "quaternion.h"
 #include "rasterization.h"
 #include "renderinfo.h"
 #include "rendermats.h"

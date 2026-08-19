@@ -50,7 +50,7 @@ void BlitTexture(Texture tex, SDL_Renderer *renderer, SAMPLE_TYPE type){
     }
 }
 
-int HandleInput(vec3 &offset, int &cam_to_use, Camera *cam, float delta_time, SDL_Event event){
+int HandleInput(vec3 &offset, int &cam_to_use, Camera *cam, double delta_time, SDL_Event event){
     if (SDL_PollEvent(&event)) {
         if (event.type == SDL_EVENT_QUIT){
             return -1;
@@ -212,12 +212,12 @@ int main(int argc, char *argv[]){
         // Clear buffer
         render_buffer.Clear(vec3(0, 0, 0));
 
-        view = secondary_cam.view;
-        proj = secondary_cam.proj;
-
         // Render geometry
         mat4 cube_model = 
             GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
+
+        view = secondary_cam.view;
+        proj = secondary_cam.proj;
 
         bp_frag.model = cube_model;
         bp_frag.view = view;
