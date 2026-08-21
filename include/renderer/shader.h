@@ -55,16 +55,18 @@ class MaterialShader : public Shader {
 
 class BlinnPhongShader : public Shader{
     public:
-        vec3 ambient;
-        vec3 diffuse;
-        vec3 specular;
-        float shininess;
+        vec3 tint;
+        float metallic;
+        float smoothness;
 
-        Texture *tex;
+        Texture *map_albedo;
+        Texture *map_roughness;
+        Texture *map_metallic;
+        Texture *map_normal;
 
         BlinnPhongShader();
-        BlinnPhongShader(Texture *tex);
-        BlinnPhongShader(vec3 ambient, vec3 diffuse, vec3 specular, float shininess, Texture *tex);
+        BlinnPhongShader(Texture *p_albedo, Texture *p_roughness, Texture *p_metallic, Texture *p_normal);
+        BlinnPhongShader(vec3 tint, float metallic, float smoothness);
 
         vec3 EvaluateFragment(vertex2D v) override;
 };

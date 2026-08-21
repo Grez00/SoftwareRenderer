@@ -36,8 +36,9 @@ float length(Quaternion q);
 Quaternion conjugate(Quaternion q);
 Quaternion inverse(Quaternion q);
 
-Quaternion GetRotation(float theta = 0.0f, vec3 axis = vec3(0, 0, 0));
+Quaternion GetRotation(float theta = 0.0f, vec3 axis = vec3());
 vec3 RotateVector(vec3 v, Quaternion q);
+vec3 RotateVector(vec3 v, float theta = 0.0f, vec3 axis = vec3());
 mat4 QuaternionToMatrix(Quaternion q);
 
 #endif

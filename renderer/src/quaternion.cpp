@@ -97,6 +97,9 @@ vec3 RotateVector(vec3 v, Quaternion q){
     Quaternion v_quat = Quaternion(0, v);
     return (q * v_quat * conjugate(q)).u;
 }
+vec3 RotateVector(vec3 v, float theta, vec3 axis){
+    return RotateVector(v, GetRotation(theta, axis));
+}
 // TODO
 mat4 QuaternionToMatrix(Quaternion q){
     return mat4();

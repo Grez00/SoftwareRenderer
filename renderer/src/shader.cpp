@@ -47,31 +47,41 @@ vec3 MaterialShader::EvaluateFragment(vertex2D v){
 }
 
 BlinnPhongShader::BlinnPhongShader() {}
-BlinnPhongShader::BlinnPhongShader(Texture *tex){
-    this->tex = tex;
+BlinnPhongShader::BlinnPhongShader(Texture *p_albedo, Texture *p_roughness, Texture *p_metallic, Texture *p_normal){
+    this->map_albedo = p_albedo;
+    this->map_roughness = p_roughness;
+    this->map_metallic = p_metallic;
+    this->map_normal = p_normal;
 }
-BlinnPhongShader::BlinnPhongShader(vec3 ambient, vec3 diffuse, vec3 specular, float shininess, Texture *tex){
-    this->ambient = ambient;
-    this->diffuse = diffuse;
-    this->specular = specular;
-    this->shininess = shininess;
-    this->tex = tex;
+BlinnPhongShader::BlinnPhongShader(vec3 tint, float metallic, float smoothness){
+    this->tint = tint;
+    this->metallic = metallic;
+    this->smoothness = smoothness;
 }
 vec3 BlinnPhongShader::EvaluateFragment(vertex2D v){
-    vec3 tex_col = vec3(1, 1, 1);
-    if (tex != NULL) tex_col = tex->sample(v.uv);
+    vec3 albedo = tint;
+    if (map_albedo != NULL) albedo = map_albedo->sample(v.uv);
+
+    float smoothness_value = smoothness;
+    if (map_roughness != NULL) smoothness_value = 1.0f - length(map_roughness->sample(v.uv));
+
+    float metallic_value = metallic;
+    if (map_metallic != NULL) metallic_value = length(map_metallic->sample(v.uv));
+
+    vec3 specular = albedo * metallic_value;
+    albedo *= 1.0f - metallic_value;
 
     vec3 view_dir = normalize(cam_pos - v.position);
 
     vec3 col = vec3();
     for (int i = 0; i < light_info->num_dir_lights; i++){
-        col += light_info->dir_lights[i].Evaluate(v.normal, view_dir, ambient, diffuse, specular, shininess);
+        col += light_info->dir_lights[i].Evaluate(v.normal, view_dir, albedo, specular, smoothness_value * 100.0f, metallic_value);
     }
     for (int i = 0; i < light_info->num_p_lights; i++){
-        col += light_info->p_lights[i].Evaluate(v.normal, view_dir, v.position, ambient, diffuse, specular, shininess);
+        col += light_info->p_lights[i].Evaluate(v.normal, view_dir, v.position, albedo, specular, smoothness_value * 100.0f, metallic_value);
     }
 
-    return tex_col * col;
+    return col;
 }
 
 TextureShader::TextureShader() {}
@@ -117,23 +127,29 @@ std::map<std::string, Shader*> ParseMTL(const std::string &filename){
 
         if (tokens[0] == "newmtl"){
             current = new BlinnPhongShader();
-            current->tex = new Texture();
+            current->map_albedo = new Texture();
+            current->map_roughness = new Texture();
+            current->map_metallic = new Texture();
+            current->map_normal = new Texture();
             output[tokens[1]] = current;
         }
-        else if (tokens[0] == "Ns"){
-            current->shininess = std::stof(tokens[1]);
+        else if (tokens[0] == "Pr"){
+            current->smoothness = std::stof(tokens[1]);
         }
-        else if (tokens[0] == "Ka"){
-            current->ambient = vec3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+        else if (tokens[0] == "Pm"){
+            current->metallic = std::stof(tokens[1]);
         }
         else if (tokens[0] == "Kd"){
-            current->diffuse = vec3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));;
-        }
-        else if (tokens[0] == "Ks"){
-            current->specular = vec3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));;
+            current->tint = vec3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));;
         }
         else if (tokens[0] == "map_Kd"){
-            current->tex = new Texture(tokens[1]);
+            current->map_albedo = new Texture(tokens[1]);
+        }
+        else if (tokens[0] == "map_Pr"){
+            current->map_roughness = new Texture(tokens[1]);
+        }
+        else if (tokens[0] == "map_Pm"){
+            current->map_metallic = new Texture(tokens[1]);
         }
     }
     file.close();

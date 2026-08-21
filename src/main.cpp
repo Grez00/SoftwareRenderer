@@ -172,14 +172,14 @@ int main(int argc, char *argv[]){
     NormalShader normal_frag = NormalShader();
     ColorShader color_frag = ColorShader();
 
-    bp_frag.tex = &tex;
+    bp_frag.map_albedo = &tex;
     bp_frag.light_info = &lighting_info;
-    bp_frag.ambient = vec3(0.1f, 0.1f, 0.1f);
-    bp_frag.diffuse = vec3(1.0f, 1.0f, 1.0f);
-    bp_frag.specular = vec3(1.0f, 1.0f, 1.0f);
-    bp_frag.shininess = 1.0f;
+    bp_frag.tint = vec3(1.0f, 1.0f, 1.0f);
+    bp_frag.smoothness = 0.5f;
+    bp_frag.metallic = 0.0f;
 
     Model cube_object = Model("assets/models/multicube.obj");
+    Model painted_sphere = Model("assets/models/painted_sphere.obj");
 
     // Set up time
     double current_time = 0;
@@ -225,8 +225,8 @@ int main(int argc, char *argv[]){
 
         bp_frag.cam_pos = secondary_cam.position;
 
-        cube_object.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
-        DrawModel(cube_object, &render_buffer);
+        painted_sphere.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
+        DrawModel(painted_sphere, &render_buffer);
 
         // Empty buffer to Renderer
         BlitBuffer(render_buffer, sdl_buffer, renderer);

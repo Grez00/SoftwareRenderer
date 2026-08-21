@@ -7,16 +7,16 @@ dirlight::dirlight(vec3 dir, vec3 ambient, vec3 diffuse, vec3 specular){
     this->diffuse = diffuse;
     this->specular = specular;
 }
-vec3 dirlight::Evaluate(vec3 normal, vec3 view_dir, vec3 m_ambient, vec3 m_diffuse, vec3 m_specular, float m_shininess){
+vec3 dirlight::Evaluate(vec3 normal, vec3 view_dir, vec3 m_diffuse, vec3 m_specular, float m_smoothness, float m_metallic){
     vec3 half = normalize(direction + view_dir);
     normal = normalize(normal);
 
     float spec = std::max(dot(normal, half), 0.0f);
     float diff = std::max(dot(normal, direction), 0.0f);
     vec3 col = (
-        ambient * m_ambient + 
+        ambient * m_diffuse + 
         diffuse * diff * m_diffuse + 
-        specular * m_specular * pow(spec, m_shininess)
+        specular * m_specular * pow(spec, m_smoothness)
     );
     return col;
 }
@@ -30,7 +30,7 @@ pointlight::pointlight(vec3 pos, float linear, float quadratic, vec3 ambient, ve
     this->diffuse = diffuse;
     this->specular = specular;
 }
-vec3 pointlight::Evaluate(vec3 normal, vec3 view_dir, vec3 frag_pos, vec3 m_ambient, vec3 m_diffuse, vec3 m_specular, float m_shininess){
+vec3 pointlight::Evaluate(vec3 normal, vec3 view_dir, vec3 frag_pos, vec3 m_diffuse, vec3 m_specular, float m_smoothness, float m_metallic){
     vec3 direction = position - frag_pos;
     float distance = length(direction);
     direction = normalize(direction);
@@ -42,9 +42,9 @@ vec3 pointlight::Evaluate(vec3 normal, vec3 view_dir, vec3 frag_pos, vec3 m_ambi
     float spec = std::max(dot(normal, half), 0.0f);
 
     vec3 col = 
-        (ambient * m_ambient + 
+        (ambient * m_diffuse + 
         (diffuse * std::max(dot(normal, direction), 0.0f)) * m_diffuse + 
-        (specular * pow(spec, m_shininess) * m_specular)) * attenuation;
+        (specular * pow(spec, m_smoothness) * m_specular)) * attenuation;
     return col;
 }
 

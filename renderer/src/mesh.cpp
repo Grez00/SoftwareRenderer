@@ -180,7 +180,7 @@ Model::Model(const std::string &filename){
         std::vector<std::string> tokens = split(line, " ");
 
         if (tokens[0] == "mtllib"){
-            shaders->LoadShaders(tokens[1]);
+            shaders->LoadShaders("assets/materials/" + tokens[1]);
             break;
         }
         else if (tokens[0] == "o"){
