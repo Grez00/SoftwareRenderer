@@ -5,6 +5,8 @@ This is, as you may have guessed, a simple software rendering library. Written i
 - Perspective-correct interpolation
 - Texture loading and sampling
 - Depth buffering
+- Roughness/Metallic Workflow
+- Tangent Space Normal Mapping
 - Mesh loading from .obj files
 - Scene loading from .json files
 - Blinn-Phong lighting
