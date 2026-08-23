@@ -24,6 +24,8 @@ class Texture{
 
         vec3 sample(vec2 uv);
         vec3 sample(vec2 uv, SAMPLE_TYPE type);
+
+        bool IsEmpty();
     
     private:
         vec3 **loadimage(const std::string &path, int &width, int &height);

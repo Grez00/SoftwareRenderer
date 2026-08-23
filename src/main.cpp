@@ -159,8 +159,8 @@ int main(int argc, char *argv[]){
     float angle = 0;
 
     // Set up Lighting
-    dirlight main_light = dirlight(vec3(1, 0, 0), vec3(0.1, 0.1, 0.1), vec3(0.25, 0.25, 0.25), vec3(0.25, 0.25, 0.25));
-    pointlight secondary_light = pointlight(vec3(-2.0f, 0.0f, -2.5f), 0.1f, 0.1f, vec3(0.1f, 0.1f, 0.1f), vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.5f));
+    dirlight main_light = dirlight(vec3(0, 0, 1), vec3(0.1, 0.1, 0.1), vec3(0.75, 0.75, 0.75), vec3(0.75, 0.75, 0.75));
+    pointlight secondary_light = pointlight(vec3(-2.0f, 0.0f, -2.5f), 0.1f, 0.1f, vec3(0.1f, 0.1f, 0.1f), vec3(0.75f, 0.75f, 0.75f), vec3(0.75f, 0.75f, 0.75f));
     dirlight *dir_lights = {&main_light};
     pointlight *point_lights = {&secondary_light};
     SceneLighting lighting_info = SceneLighting(dir_lights, point_lights, 1, 1);
@@ -178,8 +178,8 @@ int main(int argc, char *argv[]){
     bp_frag.smoothness = 0.5f;
     bp_frag.metallic = 0.0f;
 
-    Model cube_object = Model("assets/models/multicube.obj");
-    Model painted_sphere = Model("assets/models/painted_sphere.obj");
+    Model painted_sphere = Model("assets/models/PaintedSphere.obj");
+    Model cat_cube = Model("assets/models/catcube.obj");
 
     // Set up time
     double current_time = 0;
@@ -214,19 +214,13 @@ int main(int argc, char *argv[]){
 
         // Render geometry
         mat4 cube_model = 
-            GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
+            GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), 180.0f, vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
 
         view = secondary_cam.view;
         proj = secondary_cam.proj;
 
-        bp_frag.model = cube_model;
-        bp_frag.view = view;
-        bp_frag.proj = proj;
-
-        bp_frag.cam_pos = secondary_cam.position;
-
-        painted_sphere.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
-        DrawModel(painted_sphere, &render_buffer);
+        cat_cube.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
+        DrawModel(cat_cube, &render_buffer);
 
         // Empty buffer to Renderer
         BlitBuffer(render_buffer, sdl_buffer, renderer);

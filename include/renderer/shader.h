@@ -23,13 +23,17 @@ class Shader{
         mat4 view;
         mat4 proj;
 
+        // Vertex to Fragment attributes
+        vec3 *frag_pos;
+        vec3 *tangent_view_dir;
+
         // Interpolated attributes
-        vec3 *world_pos;
+        vec3 interp_view_dir;
 
         Shader();
 
         virtual vec3 EvaluateFragment(vertex2D v);
-        virtual vertex EvaluateVertex(vertex v);
+        virtual vertex EvaluateVertex(vertex v, int i);
         virtual Triangle3D EvaluateTriangle(Triangle3D tri);
 };
 
@@ -65,6 +69,7 @@ class BlinnPhongShader : public Shader{
         Texture *map_normal;
 
         BlinnPhongShader();
+        BlinnPhongShader(Texture *p_albedo);
         BlinnPhongShader(Texture *p_albedo, Texture *p_roughness, Texture *p_metallic, Texture *p_normal);
         BlinnPhongShader(vec3 tint, float metallic, float smoothness);
 

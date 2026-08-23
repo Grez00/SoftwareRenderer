@@ -1,23 +1,39 @@
 #include "renderer/shader.h"
 
 Shader::Shader() {
-    world_pos = new vec3[3];
+    frag_pos = new vec3[3];
+    tangent_view_dir = new vec3[3];
 }
 
 vec3 Shader::EvaluateFragment(vertex2D v){
     return vec3(1, 0, 1);
 }
 
-vertex Shader::EvaluateVertex(vertex v){
+vertex Shader::EvaluateVertex(vertex v, int i){
     mat4 M_V = view * model;
     mat3 id_M_V = mat3(transpose(inverse(M_V)));
+
+    frag_pos[i] = vec3(model * v.position);
+
+    vec3 normal = id_M_V * v.normal;
+    vec3 tangent = id_M_V * vec3(v.tangent);
+    vec3 bitangent = cross(normal, tangent) * v.tangent.w;
+    mat3 TBN = mat3(
+        tangent.x, tangent.y, tangent.z,
+        bitangent.x, bitangent.y, bitangent.z,
+        normal.x, normal.y, normal.z
+    );
+
+    light_info->CalculateTangentLightDir(v.position, TBN, i);
+    tangent_view_dir[i] = TBN * (cam_pos - v.position);
+
     return vertex(proj * M_V * v.position, id_M_V * v.normal, v.uv);
 }
 
 Triangle3D Shader::EvaluateTriangle(Triangle3D tri){
-    world_pos[0] = vec3(model * tri.vertices[0].position);
-    world_pos[1] = vec3(model * tri.vertices[1].position);
-    world_pos[2] = vec3(model * tri.vertices[2].position);
+    frag_pos[0] = vec3(model * tri.vertices[0].position);
+    frag_pos[1] = vec3(model * tri.vertices[1].position);
+    frag_pos[2] = vec3(model * tri.vertices[2].position);
 
     mat4 M_V = view * model;
     mat4 M_V_P = proj * M_V;
@@ -47,6 +63,9 @@ vec3 MaterialShader::EvaluateFragment(vertex2D v){
 }
 
 BlinnPhongShader::BlinnPhongShader() {}
+BlinnPhongShader::BlinnPhongShader(Texture *p_albedo){
+    this->map_albedo = p_albedo;
+}
 BlinnPhongShader::BlinnPhongShader(Texture *p_albedo, Texture *p_roughness, Texture *p_metallic, Texture *p_normal){
     this->map_albedo = p_albedo;
     this->map_roughness = p_roughness;
@@ -60,25 +79,38 @@ BlinnPhongShader::BlinnPhongShader(vec3 tint, float metallic, float smoothness){
 }
 vec3 BlinnPhongShader::EvaluateFragment(vertex2D v){
     vec3 albedo = tint;
-    if (map_albedo != NULL) albedo = map_albedo->sample(v.uv);
+    if (!map_albedo->IsEmpty()) albedo = map_albedo->sample(v.uv);
 
     float smoothness_value = smoothness;
-    if (map_roughness != NULL) smoothness_value = 1.0f - length(map_roughness->sample(v.uv));
+    if (!map_roughness->IsEmpty()) smoothness_value = 1.0f - length(map_roughness->sample(v.uv));
 
     float metallic_value = metallic;
-    if (map_metallic != NULL) metallic_value = length(map_metallic->sample(v.uv));
+    if (!map_metallic->IsEmpty()) metallic_value = length(map_metallic->sample(v.uv));
 
     vec3 specular = albedo * metallic_value;
     albedo *= 1.0f - metallic_value;
 
-    vec3 view_dir = normalize(cam_pos - v.position);
-
+    vec3 normal = v.normal;
     vec3 col = vec3();
-    for (int i = 0; i < light_info->num_dir_lights; i++){
-        col += light_info->dir_lights[i].Evaluate(v.normal, view_dir, albedo, specular, smoothness_value * 100.0f, metallic_value);
+    if (!map_normal->IsEmpty()){
+        normal = map_normal->sample(v.uv);
+
+        for (int i = 0; i < light_info->num_dir_lights; i++){
+            col += light_info->dir_lights[i].EvaluateTangentSpace(normal, light_info->interp_light_dir[i], interp_view_dir, albedo, specular, smoothness_value * 100.0f, metallic_value);
+        }
+        for (int i = light_info->num_dir_lights; i < light_info->num_lights; i++){
+            col += light_info->p_lights[i-light_info->num_dir_lights].EvaluateTangentSpace(normal, light_info->interp_light_dir[i], interp_view_dir, albedo, specular, smoothness_value * 100.0f, metallic_value);
+        }
     }
-    for (int i = 0; i < light_info->num_p_lights; i++){
-        col += light_info->p_lights[i].Evaluate(v.normal, view_dir, v.position, albedo, specular, smoothness_value * 100.0f, metallic_value);
+    else{
+        vec3 view_dir = normalize(cam_pos - v.position);
+
+        for (int i = 0; i < light_info->num_dir_lights; i++){
+            col += light_info->dir_lights[i].Evaluate(normal, view_dir, albedo, specular, smoothness_value * 100.0f, metallic_value);
+        }
+        for (int i = 0; i < light_info->num_p_lights; i++){
+            col += light_info->p_lights[i].Evaluate(normal, view_dir, v.position, albedo, specular, smoothness_value * 100.0f, metallic_value);
+        }
     }
 
     return col;
@@ -121,6 +153,8 @@ std::map<std::string, Shader*> ParseMTL(const std::string &filename){
         return output;
     }
 
+    std::string texture_path = "assets/images/";
+
     BlinnPhongShader *current;
     while(getline(file, line)){
         std::vector<std::string> tokens = split(line, " ");
@@ -143,13 +177,16 @@ std::map<std::string, Shader*> ParseMTL(const std::string &filename){
             current->tint = vec3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));;
         }
         else if (tokens[0] == "map_Kd"){
-            current->map_albedo = new Texture(tokens[1]);
+            current->map_albedo = new Texture(texture_path + tokens[1]);
         }
         else if (tokens[0] == "map_Pr"){
-            current->map_roughness = new Texture(tokens[1]);
+            current->map_roughness = new Texture(texture_path + tokens[1]);
         }
         else if (tokens[0] == "map_Pm"){
-            current->map_metallic = new Texture(tokens[1]);
+            current->map_metallic = new Texture(texture_path + tokens[1]);
+        }
+        else if (tokens[0] == "map_Bump"){
+            current->map_normal = new Texture(texture_path + tokens[3]);
         }
     }
     file.close();

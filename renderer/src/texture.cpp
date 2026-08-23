@@ -91,6 +91,10 @@ vec3 **Texture::loadimage(const std::string &path, int &width, int &height){
     return result;
 }
 
+bool Texture::IsEmpty(){
+    return w == 0 || h == 0;
+}
+
 vec3 **DownSample(vec3 **image, int w, int h, int factor){
     int d_w = int(float(w)/float(factor));
     int d_h = int(float(h)/float(factor));

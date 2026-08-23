@@ -7,7 +7,8 @@ typedef struct vertex{
     vec4 position;
     vec3 normal;
     vec2 uv;
-    vertex(vec4 p_position = vec4(0, 0, 0, 1), vec3 p_normal = vec3(0, 0, 0), vec2 p_uv = vec2(0, 0));
+    vec4 tangent;
+    vertex(vec4 p_position = vec4(0, 0, 0, 1), vec3 p_normal = vec3(0, 0, 0), vec2 p_uv = vec2(0, 0), vec4 p_tangent = vec4(0, 0, 0, 0));
 } vertex;
 
 typedef struct vertex2D{

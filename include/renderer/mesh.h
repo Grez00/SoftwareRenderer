@@ -17,9 +17,11 @@ class Mesh{
         vec3 *normals;
         vec2 *uvs;
         vec3 *indices;
+        vec4 *tangents;
 
         int vert_count;
         int index_count;
+        int triangle_count;
 
         Mesh(vec4 *p_positions, vec3 *normals, vec2 *uvs, vec3 *p_indices, int p_vertcount, int p_indexcount);
         Mesh(const std::string &filename);
@@ -42,5 +44,7 @@ class Model{
         void LinkMaterial(Shader *shader, const std::string &name);
         void LinkMatrix(mat4 matrix);
 };
+
+void CalculateTangentSpace(vec4 *tangents, Mesh *mesh);
 
 #endif

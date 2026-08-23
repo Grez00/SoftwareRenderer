@@ -9,6 +9,69 @@ Mesh::Mesh(vec4 *p_positions, vec3 *p_normals, vec2 *p_uvs, vec3 *p_indices, int
     index_count = p_indexcount;
 }
 
+void CalculateTangentSpace(vec4 *tangents, Mesh *mesh){
+    vec3 *tan = new vec3[mesh->vert_count*2];
+    vec3 *bi_tan = tan + mesh->vert_count;
+
+    for (int i = 0; i < mesh->index_count; i+=3){
+
+        vec3 i0 = mesh->indices[i];
+        vec3 i1 = mesh->indices[i+1];
+        vec3 i2 = mesh->indices[i+2];
+
+        vec3 p0 = mesh->positions[int(i0.x)];
+        vec3 p1 = mesh->positions[int(i1.x)];
+        vec3 p2 = mesh->positions[int(i2.x)];
+
+        vec2 uv0 = mesh->uvs[int(i0.y)];
+        vec2 uv1 = mesh->uvs[int(i1.y)];
+        vec2 uv2 = mesh->uvs[int(i2.y)];
+
+        vec3 edge_0 = p1 - p0;
+        vec3 edge_1 = p2 - p0;
+
+        vec2 delta_uv_0 = uv1 - uv0;
+        vec2 delta_uv_1 = uv2 - uv0;
+
+        float f = 1.0f / (delta_uv_0.x * delta_uv_1.y - delta_uv_1.x * delta_uv_0.x);
+
+        vec3 tangent = vec3(
+            f * (delta_uv_1.y * edge_0.x - delta_uv_0.y * edge_1.x),
+            f * (delta_uv_1.y * edge_0.y - delta_uv_0.y * edge_1.y),
+            f * (delta_uv_1.y * edge_0.z - delta_uv_0.y * edge_1.z)
+        );
+
+        vec3 bi_tangent = vec3(
+            f * (-delta_uv_1.x * edge_0.x + delta_uv_0.x * edge_1.x),
+            f * (-delta_uv_1.x * edge_0.y + delta_uv_0.x * edge_1.y),
+            f * (-delta_uv_1.x * edge_0.z + delta_uv_0.x * edge_1.z)
+        );
+
+        tan[int(i0.x)] += tangent;
+        tan[int(i1.x)] += tangent;
+        tan[int(i2.x)] += tangent;
+
+        bi_tan[int(i0.x)] += bi_tangent;
+        bi_tan[int(i1.x)] += bi_tangent;
+        bi_tan[int(i2.x)] += bi_tangent;
+    }
+
+    tangents = new vec4[mesh->vert_count];
+
+    for (int i = 0; i < mesh->index_count; i++){
+        vec3 index = mesh->indices[i];
+
+        vec3 tangent = tan[int(index.x)];
+        vec3 bi_tangent = bi_tan[int(index.x)];
+        vec3 normal = mesh->normals[int(index.z)];
+
+        tangents[int(index.x)] = v3tov4(
+            normalize(tangent - normal * dot(normal, tangent)),
+            (dot(cross(normal, tangent), bi_tangent) < 0.0f) ? -1.0f : 1.0f 
+        );
+    }
+}
+
 Mesh::Mesh(const std::string &filename){
     std::string file_end = ".obj";
     if (filename.length() < file_end.length() || filename.compare(filename.length() - file_end.length(), file_end.length(), file_end)){
@@ -100,6 +163,9 @@ Mesh::Mesh(const std::string &filename){
 
     vert_count = seen_pos.size();
     index_count = seen_indices.size();
+    triangle_count = index_count/3;
+
+    CalculateTangentSpace(tangents, this);
 }
 
 Mesh::Mesh(){
@@ -253,6 +319,11 @@ Model::Model(const std::string &filename){
     }
 
     mesh = new Mesh(p_positions, p_normals, p_uvs, p_indices, seen_pos.size(), seen_indices.size());
+
+    // Calculate Tangent Space
+    vec4 *tangents;
+    CalculateTangentSpace(tangents, mesh);
+    mesh->tangents = tangents;
 }
 
 Model::Model() {}

@@ -1,0 +1,18 @@
+# Blender 5.0.1 MTL File: 'PaintedSphere.blend'
+# www.blender.org
+
+newmtl PaintedMetal
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+map_Kd PaintedMetal002_2K-JPG_Color.jpg
+map_Pm PaintedMetal002_2K-JPG_Metalness.jpg
+map_Pr PaintedMetal002_2K-JPG_Roughness.jpg
+map_Bump -bm 1.000000 Cat_NormalMap.png
