@@ -4,6 +4,7 @@ This is, as you may have guessed, a simple software rendering library. Written i
 - Rasterizing of lines and triangles
 - Perspective-correct interpolation
 - Texture loading and sampling
+- Bilinear Interpolation
 - Depth buffering
 - Roughness/Metallic Workflow
 - Tangent Space Normal Mapping
@@ -11,6 +12,7 @@ This is, as you may have guessed, a simple software rendering library. Written i
 - Scene loading from .json files
 - Blinn-Phong lighting
 - Positionable camera
+- Quaternions
 - Homogenous clipping
 - Back-face culling
 - Frustum culling
