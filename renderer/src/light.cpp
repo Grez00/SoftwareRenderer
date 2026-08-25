@@ -25,7 +25,7 @@ vec3 dirlight::EvaluateTangentSpace(vec3 normal, vec3 light_dir, vec3 view_dir, 
     normal = normalize(normal);
 
     float spec = std::max(dot(normal, half), 0.0f);
-    float diff = std::max(dot(normal, direction), 0.0f);
+    float diff = std::max(dot(normal, light_dir), 0.0f);
     vec3 col = (
         ambient * m_diffuse + 
         diffuse * diff * m_diffuse + 
@@ -52,11 +52,13 @@ vec3 pointlight::Evaluate(vec3 normal, vec3 view_dir, vec3 frag_pos, vec3 m_diff
     normal = normalize(normal);
 
     float attenuation = 1.0f / (1.0f + linear * distance + quadratic * distance*distance);
+
+    float diff = std::max(dot(normal, direction), 0.0f);
     float spec = std::max(dot(normal, half), 0.0f);
 
     vec3 col = 
         (ambient * m_diffuse + 
-        (diffuse * std::max(dot(normal, direction), 0.0f)) * m_diffuse + 
+        (diffuse * diff) * m_diffuse + 
         (specular * pow(spec, m_smoothness) * m_specular)) * attenuation;
     return col;
 }
@@ -68,11 +70,12 @@ vec3 pointlight::EvaluateTangentSpace(vec3 normal, vec3 light_dir, vec3 view_dir
     normal = normalize(normal);
 
     float attenuation = 1.0f / (1.0f + linear * distance + quadratic * distance*distance);
-    float spec = std::max(dot(normal, half), 0.0f);
 
+    float diff = std::max(dot(normal, light_dir), 0.0f);
+    float spec = std::max(dot(normal, half), 0.0f);
     vec3 col = 
         (ambient * m_diffuse + 
-        (diffuse * std::max(dot(normal, light_dir), 0.0f)) * m_diffuse + 
+        diffuse * diff * m_diffuse + 
         (specular * pow(spec, m_smoothness) * m_specular)) * attenuation;
     return col;
 }
@@ -80,6 +83,13 @@ vec3 pointlight::EvaluateTangentSpace(vec3 normal, vec3 light_dir, vec3 view_dir
 SceneLighting::SceneLighting(){
     num_dir_lights = 0;
     num_p_lights = 0;
+    num_lights = 0;
+
+    this->tangent_light_dir = new vec3*[num_lights];
+    for (int i = 0; i < num_lights; i++){
+        this->tangent_light_dir[i] = new vec3[3];
+    }
+    this->interp_light_dir = new vec3[num_lights];
 }
 SceneLighting::SceneLighting(dirlight *dir_lights, pointlight *p_lights, int num_dir_lights, int num_p_lights){
     this->dir_lights = dir_lights;
@@ -99,7 +109,7 @@ void SceneLighting::CalculateTangentLightDir(vec3 pos, mat3 TBN, int i){
         tangent_light_dir[j][i] = TBN * dir_lights[j].direction;
     }
     for (int j = num_dir_lights; j < num_lights; j++){
-        tangent_light_dir[j][i] = TBN * (p_lights[j].position - pos);
+        tangent_light_dir[j][i] = TBN * (p_lights[j-num_dir_lights].position - pos);
     }
 }
 void SceneLighting::InterpolateLightDir(vec2 uv){

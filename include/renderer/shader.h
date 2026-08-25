@@ -96,6 +96,17 @@ class ColorShader : public Shader{
         vec3 EvaluateFragment(vertex2D v) override;
 };
 
+class SkyboxShader : public Shader{
+    public:
+        CubeMap *cubemap;
+
+        SkyboxShader();
+        SkyboxShader(CubeMap *cubemap);
+
+        vertex EvaluateVertex(vertex v, int i) override;
+        vec3 EvaluateFragment(vertex2D v) override;
+};
+
 class ShaderStore{
     public:
         ShaderStore();

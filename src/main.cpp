@@ -152,6 +152,14 @@ int main(int argc, char *argv[]){
 
     // Load Textures
     Texture tex = Texture("assets/images/image.jpg");
+    CubeMap skybox_tex = CubeMap(
+        "assets/images/skybox_1/left.jpg",
+        "assets/images/skybox_1/right.jpg",
+        "assets/images/skybox_1/top.jpg",
+        "assets/images/skybox_1/bottom.jpg",
+        "assets/images/skybox_1/front.jpg",
+        "assets/images/skybox_1/back.jpg"
+    );
 
     aabb test_box = aabb(vec3(0, 0, -7), vec3(2, 2, 2));
     vec3 tri_offset = vec3();
@@ -159,18 +167,23 @@ int main(int argc, char *argv[]){
     float angle = 0;
 
     // Set up Lighting
-    dirlight main_light = dirlight(vec3(0, 0, 1), vec3(0.1, 0.1, 0.1), vec3(0.75, 0.75, 0.75), vec3(0.75, 0.75, 0.75));
-    pointlight secondary_light = pointlight(vec3(-2.0f, 0.0f, -2.5f), 0.1f, 0.1f, vec3(0.1f, 0.1f, 0.1f), vec3(0.75f, 0.75f, 0.75f), vec3(0.75f, 0.75f, 0.75f));
-    dirlight *dir_lights = {&main_light};
-    pointlight *point_lights = {&secondary_light};
+    dirlight dir_light_1 = dirlight(vec3(1, 0, 0), vec3(0.1, 0.1, 0.1), vec3(1.0f, 0.0f, 0.0f), vec3(1.0f, 0.0f, 0.0f));
+    dirlight dir_light_2 = dirlight(vec3(-1, 0, 0), vec3(0.1, 0.1, 0.1), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    pointlight p_light_1 = pointlight(vec3(-5.0f, 0.0f, -5.0f), 0.0f, 0.0f, vec3(0.2f, 0.2f, 0.2f), vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 0.0f, 1.0f));
+    pointlight p_light_2 = pointlight(vec3(5.0f, 0.0f, -5.0f), 0.0f, 0.0f, vec3(0.2f, 0.2f, 0.2f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    dirlight *dir_lights = new dirlight[2];
+    dir_lights[0] = dir_light_1;
+    dir_lights[1] = dir_light_2;
+    pointlight *point_lights = new pointlight[2];
+    point_lights[0] = p_light_1;
+    point_lights[1] = p_light_2;
     SceneLighting lighting_info = SceneLighting(dir_lights, point_lights, 1, 1);
 
     // Create shaders
     BlinnPhongShader bp_frag = BlinnPhongShader();
-    MaterialShader mat_frag = MaterialShader();
-    TextureShader tex_frag = TextureShader();
-    NormalShader normal_frag = NormalShader();
-    ColorShader color_frag = ColorShader();
+    SkyboxShader skybox_shader = SkyboxShader(&skybox_tex);
+
+    skybox_shader.light_info = &lighting_info;
 
     bp_frag.map_albedo = &tex;
     bp_frag.light_info = &lighting_info;
@@ -214,13 +227,21 @@ int main(int argc, char *argv[]){
 
         // Render geometry
         mat4 cube_model = 
-            GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), 180.0f, vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
+            GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), 0, vec3(1.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f));
 
         view = secondary_cam.view;
         proj = secondary_cam.proj;
 
-        cat_cube.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
-        DrawModel(cat_cube, &render_buffer);
+        bp_frag.view = view;
+        bp_frag.proj = proj;
+        bp_frag.model = cube_model;
+
+        skybox_shader.view = mat3tomat4(mat3(view));
+        skybox_shader.proj = proj;
+        DrawMesh(cube, &render_buffer, &skybox_shader);
+
+        //cat_cube.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
+        //DrawModel(cat_cube, &render_buffer);
 
         // Empty buffer to Renderer
         BlitBuffer(render_buffer, sdl_buffer, renderer);

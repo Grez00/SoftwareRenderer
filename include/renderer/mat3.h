@@ -33,4 +33,6 @@ mat3 adjugate(mat3 m);
 mat3 inverse(mat3 m);
 float determinant(mat3 m);
 
+mat4 mat3tomat4(mat3 m);
+
 #endif

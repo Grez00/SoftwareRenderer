@@ -177,3 +177,25 @@ mat3 inverse(mat3 m){
 
     return adj * (1.0f/det);
 }
+
+mat4 mat3tomat4(mat3 m){
+    mat4 result;
+
+    for (int i = 0; i < 3; i++){
+        for (int j = 0; j < 3; j++){
+            result.cells[i][j] = m.cells[i][j];
+        }
+    }
+
+    result.cells[3][0] = 0.0f;
+    result.cells[3][1] = 0.0f;
+    result.cells[3][2] = 0.0f;
+
+    result.cells[0][3] = 0.0f;
+    result.cells[1][3] = 0.0f;
+    result.cells[2][3] = 0.0f;
+
+    result.cells[3][3] = 1.0f;
+
+    return result;
+}

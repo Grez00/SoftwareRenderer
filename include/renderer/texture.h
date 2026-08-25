@@ -2,6 +2,7 @@
 #define TEXTURE_H
 
 #include <math.h>
+#include <vector>
 
 #include "stb_image.h"
 #include "vectors.h"
@@ -32,5 +33,26 @@ class Texture{
 };
 
 vec3 **DownSample(vec3 **image, int w, int h, int factor);
+
+class CubeMap{
+    public:
+        Texture *left, *right, *top, *bottom, *front, *back;
+
+        CubeMap();
+        CubeMap(std::vector<std::string> paths);
+        CubeMap(
+            const std::string &left_path, 
+            const std::string &right_path, 
+            const std::string &top_path,
+            const std::string &bottom_path,
+            const std::string &front_path,
+            const std::string &back_path
+        );
+
+        Texture *operator[](int i);
+
+        vec3 sample(vec3 dir);
+        bool IsInvalid();
+};
 
 #endif

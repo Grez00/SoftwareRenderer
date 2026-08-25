@@ -11,12 +11,12 @@ vec3 Shader::EvaluateFragment(vertex2D v){
 
 vertex Shader::EvaluateVertex(vertex v, int i){
     mat4 M_V = view * model;
-    mat3 id_M_V = mat3(transpose(inverse(M_V)));
+    mat3 id_M = mat3(transpose(inverse(M_V)));
 
     frag_pos[i] = vec3(model * v.position);
 
-    vec3 normal = id_M_V * v.normal;
-    vec3 tangent = id_M_V * vec3(v.tangent);
+    vec3 normal = id_M * v.normal;
+    vec3 tangent = id_M * vec3(v.tangent);
     vec3 bitangent = cross(normal, tangent) * v.tangent.w;
     mat3 TBN = mat3(
         tangent.x, tangent.y, tangent.z,
@@ -27,23 +27,37 @@ vertex Shader::EvaluateVertex(vertex v, int i){
     light_info->CalculateTangentLightDir(v.position, TBN, i);
     tangent_view_dir[i] = TBN * (cam_pos - v.position);
 
-    return vertex(proj * M_V * v.position, id_M_V * v.normal, v.uv);
+    return vertex(proj * M_V * v.position, normal, v.uv);
 }
 
 Triangle3D Shader::EvaluateTriangle(Triangle3D tri){
-    frag_pos[0] = vec3(model * tri.vertices[0].position);
-    frag_pos[1] = vec3(model * tri.vertices[1].position);
-    frag_pos[2] = vec3(model * tri.vertices[2].position);
-
     mat4 M_V = view * model;
     mat4 M_V_P = proj * M_V;
     mat3 id_M = mat3(transpose(inverse(model)));
 
-    return Triangle3D(
-        vertex(M_V_P * tri.vertices[0].position, id_M * tri.vertices[0].normal, tri.vertices[0].uv),
-        vertex(M_V_P * tri.vertices[1].position, id_M * tri.vertices[1].normal, tri.vertices[1].uv),
-        vertex(M_V_P * tri.vertices[2].position, id_M * tri.vertices[2].normal, tri.vertices[2].uv)
-    );
+    Triangle3D result = Triangle3D();
+
+    for (int i = 0; i < 3; i++){
+        frag_pos[i] = vec3(model * tri.vertices[i].position);
+
+        vec3 normal = id_M * tri.vertices[i].normal;
+        vec3 tangent = id_M * vec3(tri.vertices[i].tangent);
+        vec3 bitangent = cross(normal, tangent) * tri.vertices[i].tangent.w;
+        mat3 TBN = mat3(
+            tangent.x, tangent.y, tangent.z,
+            bitangent.x, bitangent.y, bitangent.z,
+            normal.x, normal.y, normal.z
+        );
+
+        light_info->CalculateTangentLightDir(tri.vertices[i].position, TBN, i);
+        tangent_view_dir[i] = TBN * (cam_pos - tri.vertices[i].position);
+
+        result.vertices[i].position = M_V_P * tri.vertices[i].position;
+        result.vertices[i].normal = normal;
+        result.vertices[i].uv = tri.vertices[i].uv;
+    }
+
+    return result;
 }
 
 NormalShader::NormalShader() {}
@@ -62,9 +76,17 @@ vec3 MaterialShader::EvaluateFragment(vertex2D v){
     return vec3(1, 1, 1) * ambient * diffuse * specular;
 }
 
-BlinnPhongShader::BlinnPhongShader() {}
+BlinnPhongShader::BlinnPhongShader() {
+    this->map_albedo = new Texture();
+    this->map_roughness = new Texture();
+    this->map_metallic = new Texture();
+    this->map_normal = new Texture();
+}
 BlinnPhongShader::BlinnPhongShader(Texture *p_albedo){
     this->map_albedo = p_albedo;
+    this->map_roughness = new Texture();
+    this->map_metallic = new Texture();
+    this->map_normal = new Texture();
 }
 BlinnPhongShader::BlinnPhongShader(Texture *p_albedo, Texture *p_roughness, Texture *p_metallic, Texture *p_normal){
     this->map_albedo = p_albedo;
@@ -132,6 +154,17 @@ ColorShader::ColorShader(vec3 col){
 }
 vec3 ColorShader::EvaluateFragment(vertex2D v){
     return col;
+}
+
+SkyboxShader::SkyboxShader() {}
+SkyboxShader::SkyboxShader(CubeMap *cubemap) {
+    this->cubemap = cubemap;
+}
+vertex SkyboxShader::EvaluateVertex(vertex v, int i){
+    return vertex(proj * view * v.position, v.position, v.uv);
+}
+vec3 SkyboxShader::EvaluateFragment(vertex2D v){
+    return vec3(1, 0, 0);
 }
 
 // SHADER STORE

@@ -118,3 +118,116 @@ vec3 **DownSample(vec3 **image, int w, int h, int factor){
 
     return result;
 }
+
+Texture *CubeMap::operator[](int i){
+    i = i % 5;
+    switch (i){
+        case 0:
+            return left;
+        case 1:
+            return right;
+        case 2:
+            return top;
+        case 3:
+            return bottom;
+        case 4:
+            return front;
+        case 5:
+            return back;
+        default:
+            printf("CubeMap: Index out of bounds error\n");
+            exit(-1);
+    }
+}
+
+CubeMap::CubeMap(){
+    left, right, top, bottom, front, back = new Texture();
+}
+CubeMap::CubeMap(std::vector<std::string> paths){
+    if (paths.size() != 6){
+        printf("Cubemap: Incorrect number of faces provided\n");
+        exit(-1);
+    }
+
+    left = new Texture(paths[0]);
+    right = new Texture(paths[1]);
+    top = new Texture(paths[2]);
+    bottom = new Texture(paths[3]);
+    front = new Texture(paths[4]);
+    back = new Texture(paths[5]);
+}
+CubeMap::CubeMap(
+    const std::string &left_path, 
+    const std::string &right_path, 
+    const std::string &top_path,
+    const std::string &bottom_path,
+    const std::string &front_path,
+    const std::string &back_path
+){
+    left = new Texture(left_path);
+    right = new Texture(right_path);
+    top = new Texture(top_path);
+    bottom = new Texture(bottom_path);
+    front = new Texture(front_path);
+    back = new Texture(back_path);
+}
+
+vec3 CubeMap::sample(vec3 dir){
+    vec3 abs_dir = abs(dir);
+
+    bool is_x = abs_dir.x > abs_dir.y && abs_dir.x > abs_dir.z;
+    bool is_y = !is_x && abs_dir.y > abs_dir.z;
+
+    float ma;
+    float sc;
+    float tc;
+
+    int face_index;
+
+    if (is_x){
+        ma = abs_dir.x;
+        tc = -dir.y;
+
+        if (dir.x < 0){
+            face_index = 1;
+            sc = dir.z;
+        }
+        else{
+            face_index = 0;
+            sc = -dir.z;
+        }
+    }
+    else if (is_y){
+        ma = abs_dir.y;
+        sc = dir.x;
+        
+        if (dir.x < 0){
+            face_index = 3;
+            tc = -dir.z;
+        }
+        else{
+            face_index = 2;
+            tc = dir.z;
+        }
+    }
+    else{
+        ma = abs_dir.z;
+        tc = -dir.y;
+        
+        if (dir.x < 0){
+            face_index = 5;
+            sc = -dir.x;
+        }
+        else{
+            face_index = 0;
+            sc = dir.x;
+        }
+    }
+
+    vec2 uv = (
+        0.5f * (sc / ma + 1),
+        0.5f * (tc / ma + 1)
+    );
+
+    return (*this)[face_index]->sample(uv);
+}

@@ -160,6 +160,7 @@ bool LineAxisIntersect(float a_v, float b_v, vertex a, vertex b, vertex &interse
     intersect.position = a.position*(1.0f-t) + b.position*t;
     intersect.normal = a.normal*(1.0f-t) + b.normal*t;
     intersect.uv = a.uv*(1.0f-t) + b.uv*t;
+    intersect.tangent = a.tangent*(1.0f-t) + b.tangent*t;
 
     return 0;
 }
