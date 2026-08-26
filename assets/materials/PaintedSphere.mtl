@@ -15,4 +15,4 @@ anisor 0.000000
 map_Kd PaintedMetal002_2K-JPG_Color.jpg
 map_Pm PaintedMetal002_2K-JPG_Metalness.jpg
 map_Pr PaintedMetal002_2K-JPG_Roughness.jpg
-map_Bump -bm 1.000000 Cat_NormalMap.png
+map_Bump -bm 1.000000 PaintedMetal002_2K-JPG_NormalDX.jpg
