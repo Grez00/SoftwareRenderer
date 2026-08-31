@@ -110,6 +110,7 @@ void SceneLighting::CalculateTangentLightDir(vec3 pos, mat3 TBN, int i){
     }
     for (int j = num_dir_lights; j < num_lights; j++){
         tangent_light_dir[j][i] = TBN * (p_lights[j-num_dir_lights].position - pos);
+        //tangent_light_dir[j][i] = TBN * dir_lights[j].direction;
     }
 }
 void SceneLighting::InterpolateLightDir(vec2 uv){

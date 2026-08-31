@@ -24,8 +24,8 @@ vertex Shader::EvaluateVertex(vertex v, int i){
         normal.x, normal.y, normal.z
     );
 
-    light_info->CalculateTangentLightDir(v.position, TBN, i);
-    tangent_view_dir[i] = TBN * (cam_pos - v.position);
+    light_info->CalculateTangentLightDir(frag_pos[i], TBN, i);
+    tangent_view_dir[i] = TBN * (cam_pos - frag_pos[i]);
 
     return vertex(proj * M_V * v.position, normal, v.uv);
 }
@@ -49,8 +49,8 @@ Triangle3D Shader::EvaluateTriangle(Triangle3D tri){
             normal.x, normal.y, normal.z
         );
 
-        light_info->CalculateTangentLightDir(tri.vertices[i].position, TBN, i);
-        tangent_view_dir[i] = TBN * (cam_pos - tri.vertices[i].position);
+        light_info->CalculateTangentLightDir(frag_pos[i], TBN, i);
+        tangent_view_dir[i] = TBN * (cam_pos - frag_pos[i]);
 
         result.vertices[i].position = M_V_P * tri.vertices[i].position;
         result.vertices[i].normal = normal;

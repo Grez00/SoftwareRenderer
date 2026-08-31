@@ -8,7 +8,7 @@
 #define PI 3.14159265358979323846f
 
 const int SCR_WIDTH = 800/2, SCR_HEIGHT = 600/2; // Pixels to render
-const float RENDER_SCALE = 2.0f; // Multiplier for the actual scale of the window
+const float RENDER_SCALE = 2.5f; // Multiplier for the actual scale of the window
 
 const float MOVE_SPEED = 5.0f;
 const float ROTATION_SPEED = 2.5f;
@@ -161,9 +161,9 @@ int main(int argc, char *argv[]){
     float angle = 0;
 
     // Set up Lighting
-    dirlight dir_light_1 = dirlight(vec3(1, 0, 0), vec3(0.1, 0.1, 0.1), vec3(1.0f, 0.0f, 0.0f), vec3(1.0f, 0.0f, 0.0f));
+    dirlight dir_light_1 = dirlight(vec3(0, 1, 0), vec3(0.1, 0.1, 0.1), vec3(1.0f, 0.0f, 0.0f), vec3(1.0f, 0.0f, 0.0f));
     dirlight dir_light_2 = dirlight(vec3(-1, 0, 0), vec3(0.1, 0.1, 0.1), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-    pointlight p_light_1 = pointlight(vec3(-5.0f, 0.0f, -5.0f), 0.1f, 0.5f, vec3(0.2f, 0.2f, 0.2f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    pointlight p_light_1 = pointlight(vec3(0.0f, 2.0f, -5.0f), 0.1f, 0.5f, vec3(0.2f, 0.2f, 0.2f), vec3(1.0f, 0.0f, 0.0f), vec3(1.0f, 0.0f, 0.0f));
     pointlight p_light_2 = pointlight(vec3(5.0f, 0.0f, -5.0f), 0.0f, 0.0f, vec3(0.2f, 0.2f, 0.2f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
     dirlight *dir_lights = new dirlight[2];
     dir_lights[0] = dir_light_1;
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]){
     pointlight *point_lights = new pointlight[2];
     point_lights[0] = p_light_1;
     point_lights[1] = p_light_2;
-    SceneLighting lighting_info = SceneLighting(dir_lights, point_lights, 1, 1);
+    SceneLighting lighting_info = SceneLighting(dir_lights, point_lights, 0, 1);
 
     // Create shaders
     BlinnPhongShader bp_frag = BlinnPhongShader();
@@ -224,7 +224,7 @@ int main(int argc, char *argv[]){
 
         // Render geometry
         mat4 cube_model = 
-            GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), 0.0f, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
+            GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
 
         mat4 light_model = 
             GetModelMatrix(vec3(0.0f, 2.0f, -5.0f), vec3(0.1f, 0.1f, 0.1f), 0.0f, vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
@@ -236,12 +236,18 @@ int main(int argc, char *argv[]){
         bp_frag.proj = proj;
         bp_frag.model = cube_model;
 
-        skybox_shader.view = mat3tomat4(mat3(view));
-        skybox_shader.proj = proj;
-        DrawMesh(skybox_cube, &render_buffer, &skybox_shader, false);
+        color_shader.view = view;
+        color_shader.proj = proj;
+        color_shader.model = light_model;
+
+        //skybox_shader.view = mat3tomat4(mat3(view));
+        //skybox_shader.proj = proj;
+        //DrawMesh(skybox_cube, &render_buffer, &skybox_shader, false);
 
         painted_sphere.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
         DrawModel(painted_sphere, &render_buffer, true);
+
+        DrawMesh(cube, &render_buffer, &color_shader, true);
 
         // Empty buffer to Renderer
         BlitBuffer(render_buffer, sdl_buffer, renderer);
