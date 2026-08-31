@@ -225,31 +225,5 @@ vec3 CubeMap::sample(vec3 dir){
         0.5f * (tc / ma + 1)
     );
 
-    vec3 col;
-    switch (face_index){
-        case 0:
-            col = vec3(0, 0, 1);
-            break;
-        case 1:
-            col = vec3(0, 1, 0);
-            break;
-        case 2:
-            col = vec3(1, 0, 0);
-            break;
-        case 3:
-            col = vec3(0, 1, 1);
-            break;
-        case 4:
-            col = vec3(1, 1, 0);
-            break;
-        case 5:
-            col = vec3(1, 0, 1);
-            break;
-        default:
-            printf("CubeMap: Index out of bounds error\n");
-            exit(-1);
-    }
-
     return (*this)[face_index]->sample(uv);
-    //return col;
 }
