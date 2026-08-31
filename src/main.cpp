@@ -8,7 +8,7 @@
 #define PI 3.14159265358979323846f
 
 const int SCR_WIDTH = 800/2, SCR_HEIGHT = 600/2; // Pixels to render
-const float RENDER_SCALE = 2.5; // Multiplier for the actual scale of the window
+const float RENDER_SCALE = 2.0f; // Multiplier for the actual scale of the window
 
 const float MOVE_SPEED = 5.0f;
 const float ROTATION_SPEED = 2.5f;
@@ -71,14 +71,12 @@ int HandleInput(vec3 &offset, int &cam_to_use, Camera *cam, double delta_time, S
             } else if (event.key.key == SDLK_E) {
                 cam->forward = normalize(GetRotationMatrix(-rotation_velocity, cam->up) * cam->forward);
             } else if (event.key.key == SDLK_R) {
-                cam->forward = vec3(0, 0, 1);
-            } else if (event.key.key == SDLK_T) {
-                cam->forward = vec3(-1, 0, 0);
+                cam->forward = normalize(GetRotationMatrix(rotation_velocity, cam->right) * cam->forward);
+            } else if (event.key.key == SDLK_F) {
+                cam->forward = normalize(GetRotationMatrix(-rotation_velocity, cam->right) * cam->forward);
             } else if (event.key.key == SDLK_LEFT){
-                //cam_to_use = 0;
                 offset += vec3(-velocity, 0, 0);
             } else if (event.key.key == SDLK_RIGHT){
-                //cam_to_use = 1;
                 offset += vec3(velocity, 0, 0);
             } else if (event.key.key == SDLK_UP){
                 offset += vec3(0, velocity, 0);
@@ -128,10 +126,7 @@ int main(int argc, char *argv[]){
     vec4 v0 = vec4(-0.5f, -0.5f, 0.0f);
     vec4 v1 = vec4(0.5f, -0.5f, 0.0f);
     vec4 v2 = vec4(0.0f, 0.5f, 0.0f);
-
-    vertex2D v3 = vertex2D(vec3(200, 500, 1), vec3(), vec2(0.0f, 0.0f));
-    vertex2D v4 = vertex2D(vec3(600, 500, 1), vec3(), vec2(1.0f, 0.0f));
-    vertex2D v5 = vertex2D(vec3(400, 100, 1), vec3(), vec2(0.5f, 1.0f));
+    Triangle3D test_tri = Triangle3D(v0, v1, v2);
 
     // Create Camera
     Camera main_cam = Camera(vec3(0, 24, 0), vec3(0, 0, -1), vec3(0, -1, 0));
@@ -146,15 +141,14 @@ int main(int argc, char *argv[]){
     Mesh bishop = Mesh("assets/models/bishop.obj");
     Mesh icosphere = Mesh("assets/models/icosphere.obj");
     Mesh sphere_mesh = Mesh("assets/models/sphere_smooth.obj");
-    Mesh why = Mesh("assets/models/why.obj");
-    Mesh house = Mesh("assets/models/house.obj");
     Mesh king = Mesh("assets/models/king.obj");
+    Mesh skybox_cube = Mesh("assets/models/skybox_cube.obj");
 
     // Load Textures
     Texture tex = Texture("assets/images/image.jpg");
     CubeMap skybox_tex = CubeMap(
-        "assets/images/skybox_1/left.jpg",
         "assets/images/skybox_1/right.jpg",
+        "assets/images/skybox_1/left.jpg",
         "assets/images/skybox_1/top.jpg",
         "assets/images/skybox_1/bottom.jpg",
         "assets/images/skybox_1/front.jpg",
@@ -169,7 +163,7 @@ int main(int argc, char *argv[]){
     // Set up Lighting
     dirlight dir_light_1 = dirlight(vec3(1, 0, 0), vec3(0.1, 0.1, 0.1), vec3(1.0f, 0.0f, 0.0f), vec3(1.0f, 0.0f, 0.0f));
     dirlight dir_light_2 = dirlight(vec3(-1, 0, 0), vec3(0.1, 0.1, 0.1), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-    pointlight p_light_1 = pointlight(vec3(-5.0f, 0.0f, -5.0f), 0.0f, 0.0f, vec3(0.2f, 0.2f, 0.2f), vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 0.0f, 1.0f));
+    pointlight p_light_1 = pointlight(vec3(-5.0f, 0.0f, -5.0f), 0.1f, 0.5f, vec3(0.2f, 0.2f, 0.2f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
     pointlight p_light_2 = pointlight(vec3(5.0f, 0.0f, -5.0f), 0.0f, 0.0f, vec3(0.2f, 0.2f, 0.2f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
     dirlight *dir_lights = new dirlight[2];
     dir_lights[0] = dir_light_1;
@@ -182,6 +176,7 @@ int main(int argc, char *argv[]){
     // Create shaders
     BlinnPhongShader bp_frag = BlinnPhongShader();
     SkyboxShader skybox_shader = SkyboxShader(&skybox_tex);
+    ColorShader color_shader = ColorShader(vec3(1, 0, 0));
 
     skybox_shader.light_info = &lighting_info;
 
@@ -190,6 +185,8 @@ int main(int argc, char *argv[]){
     bp_frag.tint = vec3(1.0f, 1.0f, 1.0f);
     bp_frag.smoothness = 0.5f;
     bp_frag.metallic = 0.0f;
+
+    color_shader.light_info = &lighting_info;
 
     Model painted_sphere = Model("assets/models/PaintedSphere.obj");
     Model cat_cube = Model("assets/models/catcube.obj");
@@ -227,7 +224,10 @@ int main(int argc, char *argv[]){
 
         // Render geometry
         mat4 cube_model = 
-            GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), 0, vec3(1.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f));
+            GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), 0.0f, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
+
+        mat4 light_model = 
+            GetModelMatrix(vec3(0.0f, 2.0f, -5.0f), vec3(0.1f, 0.1f, 0.1f), 0.0f, vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
 
         view = secondary_cam.view;
         proj = secondary_cam.proj;
@@ -238,10 +238,10 @@ int main(int argc, char *argv[]){
 
         skybox_shader.view = mat3tomat4(mat3(view));
         skybox_shader.proj = proj;
-        DrawMesh(cube, &render_buffer, &skybox_shader);
+        DrawMesh(skybox_cube, &render_buffer, &skybox_shader, false);
 
-        //cat_cube.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
-        //DrawModel(cat_cube, &render_buffer);
+        painted_sphere.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
+        DrawModel(painted_sphere, &render_buffer, true);
 
         // Empty buffer to Renderer
         BlitBuffer(render_buffer, sdl_buffer, renderer);

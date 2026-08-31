@@ -104,6 +104,7 @@ class SkyboxShader : public Shader{
         SkyboxShader(CubeMap *cubemap);
 
         vertex EvaluateVertex(vertex v, int i) override;
+        Triangle3D EvaluateTriangle(Triangle3D tri) override;
         vec3 EvaluateFragment(vertex2D v) override;
 };
 

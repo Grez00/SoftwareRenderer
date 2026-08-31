@@ -120,20 +120,19 @@ vec3 **DownSample(vec3 **image, int w, int h, int factor){
 }
 
 Texture *CubeMap::operator[](int i){
-    i = i % 5;
     switch (i){
         case 0:
-            return left;
-        case 1:
             return right;
+        case 1:
+            return left;
         case 2:
             return top;
         case 3:
             return bottom;
         case 4:
-            return front;
-        case 5:
             return back;
+        case 5:
+            return front;
         default:
             printf("CubeMap: Index out of bounds error\n");
             exit(-1);
@@ -149,20 +148,20 @@ CubeMap::CubeMap(std::vector<std::string> paths){
         exit(-1);
     }
 
-    left = new Texture(paths[0]);
-    right = new Texture(paths[1]);
+    right = new Texture(paths[0]);
+    left = new Texture(paths[1]);
     top = new Texture(paths[2]);
     bottom = new Texture(paths[3]);
-    front = new Texture(paths[4]);
-    back = new Texture(paths[5]);
+    back = new Texture(paths[4]);
+    front = new Texture(paths[5]);
 }
 CubeMap::CubeMap(
-    const std::string &left_path, 
     const std::string &right_path, 
+    const std::string &left_path, 
     const std::string &top_path,
     const std::string &bottom_path,
-    const std::string &front_path,
-    const std::string &back_path
+    const std::string &back_path,
+    const std::string &front_path
 ){
     left = new Texture(left_path);
     right = new Texture(right_path);
@@ -178,56 +177,79 @@ vec3 CubeMap::sample(vec3 dir){
     bool is_x = abs_dir.x > abs_dir.y && abs_dir.x > abs_dir.z;
     bool is_y = !is_x && abs_dir.y > abs_dir.z;
 
-    float ma;
-    float sc;
-    float tc;
-
+    float ma, sc, tc;
     int face_index;
 
     if (is_x){
         ma = abs_dir.x;
         tc = -dir.y;
 
-        if (dir.x < 0){
-            face_index = 1;
-            sc = dir.z;
-        }
-        else{
+        if (dir.x > 0){
             face_index = 0;
             sc = -dir.z;
+        }
+        else{
+            face_index = 1;
+            sc = dir.z;
         }
     }
     else if (is_y){
         ma = abs_dir.y;
         sc = dir.x;
         
-        if (dir.x < 0){
-            face_index = 3;
-            tc = -dir.z;
-        }
-        else{
+        if (dir.y > 0){
             face_index = 2;
             tc = dir.z;
+        }
+        else{
+            face_index = 3;
+            tc = -dir.z;
         }
     }
     else{
         ma = abs_dir.z;
         tc = -dir.y;
         
-        if (dir.x < 0){
+        if (dir.z > 0){
+            face_index = 4;
+            sc = dir.x;
+        }
+        else{
             face_index = 5;
             sc = -dir.x;
         }
-        else{
-            face_index = 0;
-            sc = dir.x;
-        }
     }
 
-    vec2 uv = (
+    vec2 uv = vec2(
         0.5f * (sc / ma + 1),
         0.5f * (tc / ma + 1)
     );
 
+    vec3 col;
+    switch (face_index){
+        case 0:
+            col = vec3(0, 0, 1);
+            break;
+        case 1:
+            col = vec3(0, 1, 0);
+            break;
+        case 2:
+            col = vec3(1, 0, 0);
+            break;
+        case 3:
+            col = vec3(0, 1, 1);
+            break;
+        case 4:
+            col = vec3(1, 1, 0);
+            break;
+        case 5:
+            col = vec3(1, 0, 1);
+            break;
+        default:
+            printf("CubeMap: Index out of bounds error\n");
+            exit(-1);
+    }
+
     return (*this)[face_index]->sample(uv);
+    //return col;
 }

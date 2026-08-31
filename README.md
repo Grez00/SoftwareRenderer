@@ -12,6 +12,7 @@ This is, as you may have guessed, a simple software rendering library. Written i
 - Scene loading from .json files
 - Blinn-Phong lighting
 - Positionable camera
+- Cubemapped Skyboxes
 - Quaternions
 - Homogenous clipping
 - Back-face culling

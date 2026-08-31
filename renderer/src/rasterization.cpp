@@ -1,5 +1,14 @@
 #include "renderer/rasterization.h"
 
+enum DEPTH_WRITE {
+    LESS_THAN,
+    GREATER_THAN,
+    LESS_EQ_THAN,
+    GREATER_EQ_THAN,
+    FAIL,
+    SUCCEED
+};
+
 // Triangle Collision and Rasterization
 
 float Edge(vec3 v0, vec3 v1, vec2 p){
@@ -50,15 +59,15 @@ vec4 GetBoundingBox(Triangle2D tri, int w, int h){
     int xmax = ceil((po.x > p1.x) ? ((po.x > p2.x) ? po.x : p2.x) : ((p1.x > p2.x) ? p1.x : p2.x));
     int ymax = ceil((po.y > p1.y) ? ((po.y > p2.y) ? po.y : p2.y) : ((p1.y > p2.y) ? p1.y : p2.y));
 
-    //xmin = std::min(std::max(xmin, 0), w-1);
-    //ymin = std::min(std::max(ymin, 0), h-1);
-    //xmax = std::min(std::max(xmax, 0), w-1);
-    //ymax = std::min(std::max(ymax, 0), h-1);
+    xmin = std::min(std::max(xmin, 0), w-1);
+    ymin = std::min(std::max(ymin, 0), h-1);
+    xmax = std::min(std::max(xmax, 0), w-1);
+    ymax = std::min(std::max(ymax, 0), h-1);
 
     return vec4(xmin, ymin, xmax, ymax);
 }
 
-void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader){
+void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader, bool depth_write){
     vec4 bb = GetBoundingBox(tri, buffer->w, buffer->h);
 
     vec3 v0 = tri.vertices[0].position;
@@ -109,7 +118,7 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader){
                     shader->interp_view_dir = (shader->tangent_view_dir[0] + view_dir_10_diff*b1 + view_dir_20_diff*b2);
                     shader->light_info->InterpolateLightDir(vec2(b1, b2));
                     
-                    buffer->SetDepthBuffer(x, y, depth);
+                    if (depth_write) buffer->SetDepthBuffer(x, y, depth);
                     buffer->SetRenderBuffer(x, y, shader->EvaluateFragment(vertex2D(position, normal, uv)));
                 }
             }

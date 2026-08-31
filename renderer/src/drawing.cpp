@@ -403,14 +403,15 @@ void DrawSphere(sphere s, FrameBuffer buffer, mat4 proj, vec3 col){
     DrawLine(v3tov4(s.c + vec3(0, 0, -1) * s.r, 1.0f), v3tov4(s.c + vec3(0, 0, 1) * s.r, 1.0f), buffer, proj, vec3(0, 0, 1));
 }
 
-void DrawTriangle(Triangle3D tri, FrameBuffer *buffer, Shader *shader){
+void DrawTriangle(Triangle3D tri, FrameBuffer *buffer, Shader *shader, bool depth_write){
     Triangle3D main_tri = shader->EvaluateTriangle(tri);
+
     std::vector<Triangle3D> clipped_tris = ClipTriangle(main_tri);
 
     for (Triangle3D clipped_tri : clipped_tris){
         Triangle2D window_tri = WindowTriangle(clipped_tri, buffer->w, buffer->h);
         if (IsBackfaceScreen(window_tri)) continue;
-        RasterizeTriangle(window_tri, buffer, shader);
+        RasterizeTriangle(window_tri, buffer, shader, depth_write);
     }
 }
 
@@ -444,7 +445,7 @@ void DrawTriangleStrips(vertex vertices[], int vert_count, RenderInfo render_inf
 }
 */
 
-void DrawMesh(Mesh mesh, FrameBuffer *buffer, Shader *shader){
+void DrawMesh(Mesh mesh, FrameBuffer *buffer, Shader *shader, bool depth_write){
     #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < mesh.index_count; i+=3){
         DrawTriangle(
@@ -454,12 +455,13 @@ void DrawMesh(Mesh mesh, FrameBuffer *buffer, Shader *shader){
                 vertex(mesh.positions[int(mesh.indices[i+2].x)], mesh.normals[int(mesh.indices[i+2].z)], mesh.uvs[int(mesh.indices[i+2].y)])
             ), 
             buffer,
-            shader
+            shader,
+            depth_write
         );
     }
 }
 
-void DrawModel(Model model, FrameBuffer *buffer){
+void DrawModel(Model model, FrameBuffer *buffer, bool depth_write){
     Shader *shader = new Shader();
     for (int i = 0; i < model.mesh->index_count; i+=3){
         if (model.index_to_mat.find(i) != model.index_to_mat.end()){
@@ -473,7 +475,8 @@ void DrawModel(Model model, FrameBuffer *buffer){
                 vertex(model.mesh->positions[int(model.mesh->indices[i+2].x)], model.mesh->normals[int(model.mesh->indices[i+2].z)], model.mesh->uvs[int(model.mesh->indices[i+2].y)])
             ),
             buffer,
-            shader
+            shader,
+            depth_write
         );
     }
 }

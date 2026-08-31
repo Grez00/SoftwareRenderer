@@ -161,10 +161,21 @@ SkyboxShader::SkyboxShader(CubeMap *cubemap) {
     this->cubemap = cubemap;
 }
 vertex SkyboxShader::EvaluateVertex(vertex v, int i){
-    return vertex(proj * view * v.position, v.position, v.uv);
+    return vertex(proj * view * v.position, vec3(v.position), v.uv);
+}
+Triangle3D SkyboxShader::EvaluateTriangle(Triangle3D tri){
+    Triangle3D result = Triangle3D();
+
+    for (int i = 0; i < 3; i++){
+        vertex v = tri.vertices[i];
+        vec4 pos = proj * view * v.position;
+        result.vertices[i] = vertex(pos, v.position, v.uv);
+    }
+
+    return result;
 }
 vec3 SkyboxShader::EvaluateFragment(vertex2D v){
-    return vec3(1, 0, 0);
+    return cubemap->sample(v.normal);
 }
 
 // SHADER STORE

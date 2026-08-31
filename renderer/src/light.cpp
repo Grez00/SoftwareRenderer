@@ -55,28 +55,28 @@ vec3 pointlight::Evaluate(vec3 normal, vec3 view_dir, vec3 frag_pos, vec3 m_diff
 
     float diff = std::max(dot(normal, direction), 0.0f);
     float spec = std::max(dot(normal, half), 0.0f);
-
-    vec3 col = 
-        (ambient * m_diffuse + 
-        (diffuse * diff) * m_diffuse + 
-        (specular * pow(spec, m_smoothness) * m_specular)) * attenuation;
+    vec3 col = (
+        ambient * m_diffuse + 
+        diffuse * diff * m_diffuse + 
+        specular * pow(spec, m_smoothness) * m_specular
+    ) * attenuation;
     return col;
 }
 vec3 pointlight::EvaluateTangentSpace(vec3 normal, vec3 light_dir, vec3 view_dir, vec3 m_diffuse, vec3 m_specular, float m_smoothness, float m_metallic){
     float distance = length(light_dir);
-    light_dir = normalize(light_dir);
 
     vec3 half = normalize(light_dir + view_dir);
     normal = normalize(normal);
 
     float attenuation = 1.0f / (1.0f + linear * distance + quadratic * distance*distance);
 
-    float diff = std::max(dot(normal, light_dir), 0.0f);
     float spec = std::max(dot(normal, half), 0.0f);
-    vec3 col = 
-        (ambient * m_diffuse + 
+    float diff = std::max(dot(normal, light_dir), 0.0f);
+    vec3 col = (
+        ambient * m_diffuse + 
         diffuse * diff * m_diffuse + 
-        (specular * pow(spec, m_smoothness) * m_specular)) * attenuation;
+        specular * m_specular * pow(spec, m_smoothness)
+    ) * attenuation;
     return col;
 }
 
