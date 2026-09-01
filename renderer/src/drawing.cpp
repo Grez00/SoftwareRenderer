@@ -299,14 +299,14 @@ std::vector<Triangle3D> ClipTriangle(Triangle3D tri){
 
 // Drawing
 
-void DrawPoint(vec4 v, FrameBuffer buffer, mat4 proj, vec3 col){
-    vec3 v_window = ProjectVector(v, proj, buffer.w, buffer.h);
-    if (buffer.IsOOB(vec2(v_window.x, v_window.y))) return;
+void DrawPoint(vec4 v, FrameBuffer *buffer, mat4 proj, vec3 col){
+    vec3 v_window = ProjectVector(v, proj, buffer->w, buffer->h);
+    if (buffer->IsOOB(vec2(v_window.x, v_window.y))) return;
 
-    buffer.SetRenderBuffer(v_window.x, v_window.y, col);
+    buffer->SetRenderBuffer(v_window.x, v_window.y, col);
 }
 
-void DrawLine(vec4 a, vec4 b, FrameBuffer buffer, mat4 proj, vec3 col){
+void DrawLine(vec4 a, vec4 b, FrameBuffer *buffer, mat4 proj, vec3 col){
     vec4 a_proj = proj * a;
     vec4 b_proj = proj * b;
 
@@ -314,28 +314,28 @@ void DrawLine(vec4 a, vec4 b, FrameBuffer buffer, mat4 proj, vec3 col){
 
     vec3 a_window;
     vec3 b_window;
-    WindowLine(a_proj, b_proj, a_window, b_window, proj, buffer.w, buffer.h);
+    WindowLine(a_proj, b_proj, a_window, b_window, proj, buffer->w, buffer->h);
     RasterizeLine(a_window, b_window, buffer, col);
 }
 
-void DrawLine(line line, FrameBuffer buffer, mat4 proj, vec3 col){
+void DrawLine(line line, FrameBuffer *buffer, mat4 proj, vec3 col){
     DrawLine(v3tov4(line.a, 1.0f), v3tov4(line.b, 1.0f), buffer, proj, col);
 }
 
-void DrawQuad(vec4 a, vec4 b, vec4 c, vec4 d, FrameBuffer buffer, mat4 proj, vec3 col){
+void DrawQuad(vec4 a, vec4 b, vec4 c, vec4 d, FrameBuffer *buffer, mat4 proj, vec3 col){
     DrawLine(a, b, buffer, proj, col);
     DrawLine(a, c, buffer, proj, col);
     DrawLine(d, b, buffer, proj, col);
     DrawLine(d, c, buffer, proj, col);
 }
 
-void DrawAxes(Camera cam, FrameBuffer buffer, mat4 proj){
+void DrawAxes(Camera cam, FrameBuffer *buffer, mat4 proj){
     DrawLine(v3tov4(cam.position, 1.0f), v3tov4(cam.position + cam.right, 1.0f), buffer, proj, vec3(1, 0, 0));
     DrawLine(v3tov4(cam.position, 1.0f), v3tov4(cam.position + cam.up, 1.0f), buffer, proj, vec3(0, 1, 0));
     DrawLine(v3tov4(cam.position, 1.0f), v3tov4(cam.position + cam.forward, 1.0f), buffer, proj, vec3(0, 0, 1));
 }
 
-void DrawFrustum(Camera cam, FrameBuffer buffer, mat4 proj, vec3 col){
+void DrawFrustum(Camera cam, FrameBuffer *buffer, mat4 proj, vec3 col){
     float partial = tan(M_PI/180.0f * cam.fov/2.0f);
 
     float near_extent_h = partial * cam.near;
@@ -364,7 +364,7 @@ void DrawFrustum(Camera cam, FrameBuffer buffer, mat4 proj, vec3 col){
     DrawQuad(n_c, f_c, n_d, f_d, buffer, proj, col);
 }
 
-void DrawAABB(aabb a, FrameBuffer buffer, mat4 proj){
+void DrawAABB(aabb a, FrameBuffer *buffer, mat4 proj){
     vec3 f_a = a.center + vec3(-a.extents.x, a.extents.y, -a.extents.z);
     vec3 f_b = a.center + vec3(a.extents.x, a.extents.y, -a.extents.z);
     vec3 f_c = a.center + vec3(-a.extents.x, -a.extents.y, -a.extents.z);
@@ -391,31 +391,31 @@ void DrawAABB(aabb a, FrameBuffer buffer, mat4 proj){
     DrawLine(vec4(f_d.x, f_d.y, f_d.z, 1.0f), vec4(b_d.x, b_d.y, b_d.z, 1.0f), buffer, proj);
 }
 
-void DrawPlane(plane p, FrameBuffer buffer, mat4 proj, vec3 col){
+void DrawPlane(plane p, FrameBuffer *buffer, mat4 proj, vec3 col){
     vec3 normal_point = p.p + p.n;
     DrawLine(v3tov4(p.p, 1.0f), v3tov4(normal_point, 1.0f), buffer, proj, col);
     DrawPoint(v3tov4(p.p, 1.0f), buffer, proj, vec3(1.0f - col.x, 1.0f - col.y, 1.0f - col.z));
 }
 
-void DrawSphere(sphere s, FrameBuffer buffer, mat4 proj, vec3 col){
+void DrawSphere(sphere s, FrameBuffer *buffer, mat4 proj, vec3 col){
     DrawLine(v3tov4(s.c + vec3(-1, 0, 0) * s.r, 1.0f), v3tov4(s.c + vec3(1, 0, 0) * s.r, 1.0f), buffer, proj, vec3(1, 0, 0));
     DrawLine(v3tov4(s.c + vec3(0, -1, 0) * s.r, 1.0f), v3tov4(s.c + vec3(0, 1, 0) * s.r, 1.0f), buffer, proj, vec3(0, 1, 0));
     DrawLine(v3tov4(s.c + vec3(0, 0, -1) * s.r, 1.0f), v3tov4(s.c + vec3(0, 0, 1) * s.r, 1.0f), buffer, proj, vec3(0, 0, 1));
 }
 
-void DrawTriangle(Triangle3D tri, FrameBuffer *buffer, Shader *shader, bool depth_write){
-    Triangle3D main_tri = shader->EvaluateTriangle(tri);
+void DrawTriangle(Triangle3D tri, FrameBuffer *buffer, Shader *shader, V2F *v2f, bool depth_write){
+    Triangle3D main_tri = shader->EvaluateTriangle(tri, v2f);
 
     std::vector<Triangle3D> clipped_tris = ClipTriangle(main_tri);
 
     for (Triangle3D clipped_tri : clipped_tris){
         Triangle2D window_tri = WindowTriangle(clipped_tri, buffer->w, buffer->h);
         if (IsBackfaceScreen(window_tri)) continue;
-        RasterizeTriangle(window_tri, buffer, shader, depth_write);
+        RasterizeTriangle(window_tri, buffer, shader, v2f, depth_write);
     }
 }
 
-void DrawTriangleWireframe(Triangle3D tri, FrameBuffer buffer, mat4 proj, vec3 col){
+void DrawTriangleWireframe(Triangle3D tri, FrameBuffer *buffer, mat4 proj, vec3 col){
     DrawLine(tri.vertices[0].position, tri.vertices[1].position, buffer, proj, col);
     DrawLine(tri.vertices[1].position, tri.vertices[2].position, buffer, proj, col);
     DrawLine(tri.vertices[2].position, tri.vertices[0].position, buffer, proj, col);
@@ -446,7 +446,8 @@ void DrawTriangleStrips(vertex vertices[], int vert_count, RenderInfo render_inf
 */
 
 void DrawMesh(Mesh mesh, FrameBuffer *buffer, Shader *shader, bool depth_write){
-    #pragma omp parallel for schedule(dynamic)
+    V2F v2f;
+    #pragma omp parallel for private(v2f) schedule(dynamic)
     for (int i = 0; i < mesh.index_count; i+=3){
         DrawTriangle(
             Triangle3D(
@@ -456,6 +457,7 @@ void DrawMesh(Mesh mesh, FrameBuffer *buffer, Shader *shader, bool depth_write){
             ), 
             buffer,
             shader,
+            &v2f,
             depth_write
         );
     }
@@ -463,6 +465,8 @@ void DrawMesh(Mesh mesh, FrameBuffer *buffer, Shader *shader, bool depth_write){
 
 void DrawModel(Model model, FrameBuffer *buffer, bool depth_write){
     Shader *shader = new Shader();
+    V2F v2f;
+    #pragma omp parallel for private(shader) private(v2f) schedule(dynamic) 
     for (int i = 0; i < model.mesh->index_count; i+=3){
         if (model.index_to_mat.find(i) != model.index_to_mat.end()){
             shader = model.shaders->Get(model.index_to_mat[i]);
@@ -476,21 +480,22 @@ void DrawModel(Model model, FrameBuffer *buffer, bool depth_write){
             ),
             buffer,
             shader,
+            &v2f,
             depth_write
         );
     }
 }
 
-void DrawMeshWireframe(Mesh mesh, FrameBuffer buffer, mat4 proj, mat4 model, vec3 col){
+void DrawMeshWireframe(Mesh mesh, FrameBuffer *buffer, mat4 P, mat4 M_V, vec3 col){
     for (int i = 0; i < mesh.index_count; i+=3){
         DrawTriangleWireframe(
             Triangle3D(
-                vertex(model * mesh.positions[int(mesh.indices[i].x)]), 
-                vertex(model * mesh.positions[int(mesh.indices[i+1].x)]), 
-                vertex(model * mesh.positions[int(mesh.indices[i+2].x)])
+                vertex(M_V * mesh.positions[int(mesh.indices[i].x)]), 
+                vertex(M_V * mesh.positions[int(mesh.indices[i+1].x)]), 
+                vertex(M_V * mesh.positions[int(mesh.indices[i+2].x)])
             ), 
             buffer,
-            proj,
+            P,
             col
         );
     }

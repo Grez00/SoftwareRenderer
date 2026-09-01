@@ -42,22 +42,22 @@ std::vector<Triangle3D> ClipTriangle(Triangle3D tri);
 ClipLineResult ClipLineAxis(float a_v, float b_v, vec4 &a, vec4 &b);
 bool ClipLine(vec4 &a, vec4 &b);
 
-void DrawPoint(vec4 v, FrameBuffer buffer, mat4 proj, vec3 col);
-void DrawAABB(aabb a, FrameBuffer buffer, mat4 proj);
-void DrawLine(vec4 a, vec4 b, FrameBuffer buffer, mat4 proj, vec3 col = vec3(1, 0, 0));
-void DrawLine(line line, FrameBuffer buffer, mat4 proj, vec3 col = vec3(1, 0, 0));
-void DrawQuad(vec4 a, vec4 b, vec4 c, vec4 d, FrameBuffer buffer, mat4 proj, vec3 col);
-void DrawAxes(Camera cam, FrameBuffer buffer, mat4 proj);
-void DrawFrustum(Camera cam, FrameBuffer buffer, mat4 proj, vec3 col);
-void DrawPlane(plane p, FrameBuffer buffer, mat4 proj, vec3 col);
-void DrawSphere(sphere s, FrameBuffer buffer, mat4 proj, vec3 col);
-void DrawTriangle(Triangle3D tri, FrameBuffer *buffer, Shader *shader, bool depth_write);
-void DrawTriangleWireframe(Triangle3D tri, FrameBuffer buffer, mat4 proj, vec3 col);
+void DrawPoint(vec4 v, FrameBuffer *buffer, mat4 proj, vec3 col);
+void DrawAABB(aabb a, FrameBuffer *buffer, mat4 proj);
+void DrawLine(vec4 a, vec4 b, FrameBuffer *buffer, mat4 proj, vec3 col = vec3(1, 0, 0));
+void DrawLine(line line, FrameBuffer *buffer, mat4 proj, vec3 col = vec3(1, 0, 0));
+void DrawQuad(vec4 a, vec4 b, vec4 c, vec4 d, FrameBuffer *buffer, mat4 proj, vec3 col);
+void DrawAxes(Camera cam, FrameBuffer *buffer, mat4 proj);
+void DrawFrustum(Camera cam, FrameBuffer *buffer, mat4 proj, vec3 col);
+void DrawPlane(plane p, FrameBuffer *buffer, mat4 proj, vec3 col);
+void DrawSphere(sphere s, FrameBuffer *buffer, mat4 proj, vec3 col);
+void DrawTriangle(Triangle3D tri, FrameBuffer *buffer, Shader *shader, V2F *v2f, bool depth_write);
+void DrawTriangleWireframe(Triangle3D tri, FrameBuffer *buffer, mat4 proj, vec3 col);
 void DrawTriangles(vertex vertices[], int vert_count, RenderInfo render_info);
 void DrawTrianglesIndexed(vertex vertices[], int indices[], int vert_count, int index_count, RenderInfo *render_info);
 void DrawTriangleStrips(vertex vertices[], int vert_count, RenderInfo render_info);
-void DrawMesh(Mesh mesh, FrameBuffer *buffer, Shader *shader, bool depth_write);
-void DrawModel(Model model, FrameBuffer *buffer, bool depth_write);
-void DrawMeshWireframe(Mesh mesh, FrameBuffer buffer, mat4 proj, mat4 model, vec3 col);
+void DrawMesh(Mesh mesh, FrameBuffer *buffer, Shader *shader, bool depth_write = true);
+void DrawModel(Model model, FrameBuffer *buffer, bool depth_write = true);
+void DrawMeshWireframe(Mesh mesh, FrameBuffer *buffer, mat4 P, mat4 M_V, vec3 col);
 
 #endif

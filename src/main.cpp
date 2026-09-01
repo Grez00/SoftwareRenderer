@@ -1,6 +1,8 @@
 #include <iostream>
+#include <vector>
 #include <math.h>
 #include <sys/time.h>
+#include <omp.h>
 
 #include <renderer/renderer.h>
 #include <SDL3/SDL.h>
@@ -161,17 +163,17 @@ int main(int argc, char *argv[]){
     float angle = 0;
 
     // Set up Lighting
-    dirlight dir_light_1 = dirlight(vec3(0, 1, 0), vec3(0.1, 0.1, 0.1), vec3(1.0f, 0.0f, 0.0f), vec3(1.0f, 0.0f, 0.0f));
-    dirlight dir_light_2 = dirlight(vec3(-1, 0, 0), vec3(0.1, 0.1, 0.1), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-    pointlight p_light_1 = pointlight(vec3(0.0f, 2.0f, -5.0f), 0.1f, 0.5f, vec3(0.2f, 0.2f, 0.2f), vec3(1.0f, 0.0f, 0.0f), vec3(1.0f, 0.0f, 0.0f));
-    pointlight p_light_2 = pointlight(vec3(5.0f, 0.0f, -5.0f), 0.0f, 0.0f, vec3(0.2f, 0.2f, 0.2f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    dirlight dir_light_1 = dirlight(vec3(1, 0, 0), vec3(0.1, 0.1, 0.1), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f));
+    dirlight dir_light_2 = dirlight(vec3(-1, 0, 0), vec3(0.1, 0.1, 0.1), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f));
+    pointlight p_light_1 = pointlight(vec3(-2.0f, 0.0f, -5.0f), 0.1f, 0.1f, vec3(0.2f, 0.2f, 0.2f), vec3(1.0f, 0.0f, 0.0f), vec3(1.0f, 0.0f, 0.0f));
+    pointlight p_light_2 = pointlight(vec3(2.0f, 0.0f, -5.0f), 0.1f, 0.1f, vec3(0.2f, 0.2f, 0.2f), vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 0.0f, 1.0f));
     dirlight *dir_lights = new dirlight[2];
     dir_lights[0] = dir_light_1;
     dir_lights[1] = dir_light_2;
     pointlight *point_lights = new pointlight[2];
     point_lights[0] = p_light_1;
     point_lights[1] = p_light_2;
-    SceneLighting lighting_info = SceneLighting(dir_lights, point_lights, 0, 1);
+    SceneLighting lighting_info = SceneLighting(dir_lights, point_lights, 0, 2);
 
     // Create shaders
     BlinnPhongShader bp_frag = BlinnPhongShader();
@@ -226,8 +228,8 @@ int main(int argc, char *argv[]){
         mat4 cube_model = 
             GetModelMatrix(vec3(0.0f, 0.0f, -5.0f) + tri_offset, vec3(1.0f, 1.0f, 1.0f), current_time, vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
 
-        mat4 light_model = 
-            GetModelMatrix(vec3(0.0f, 2.0f, -5.0f), vec3(0.1f, 0.1f, 0.1f), 0.0f, vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
+        //mat4 light_model = 
+            //GetModelMatrix(vec3(0.0f, 2.0f, -5.0f), vec3(0.1f, 0.1f, 0.1f), 0.0f, vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f));
 
         view = secondary_cam.view;
         proj = secondary_cam.proj;
@@ -236,18 +238,19 @@ int main(int argc, char *argv[]){
         bp_frag.proj = proj;
         bp_frag.model = cube_model;
 
-        color_shader.view = view;
+        color_shader.view = mat3tomat4(mat3(view));
         color_shader.proj = proj;
-        color_shader.model = light_model;
+        //color_shader.model = cube_model;
 
-        //skybox_shader.view = mat3tomat4(mat3(view));
-        //skybox_shader.proj = proj;
-        //DrawMesh(skybox_cube, &render_buffer, &skybox_shader, false);
+        skybox_shader.view = mat3tomat4(mat3(view));
+        skybox_shader.proj = proj;
+        DrawMesh(skybox_cube, &render_buffer, &color_shader, false);
 
-        painted_sphere.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
-        DrawModel(painted_sphere, &render_buffer, true);
+        //painted_sphere.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
+        //DrawModel(painted_sphere, &render_buffer);
 
-        DrawMesh(cube, &render_buffer, &color_shader, true);
+        //DrawMesh(king, &render_buffer, &bp_frag);
+        //DrawMeshWireframe(sphere_mesh, &render_buffer, proj, view * cube_model, vec3(0, 1, 0));
 
         // Empty buffer to Renderer
         BlitBuffer(render_buffer, sdl_buffer, renderer);

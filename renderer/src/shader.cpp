@@ -1,19 +1,24 @@
 #include "renderer/shader.h"
 
-Shader::Shader() {
+V2F::V2F() {
     frag_pos = new vec3[3];
+}
+
+Shader::Shader() {
+    //frag_pos = new vec3[3];
     tangent_view_dir = new vec3[3];
 }
 
-vec3 Shader::EvaluateFragment(vertex2D v){
+vec3 Shader::EvaluateFragment(vertex2D v, V2F *v2f){
     return vec3(1, 0, 1);
 }
 
-vertex Shader::EvaluateVertex(vertex v, int i){
+vertex Shader::EvaluateVertex(vertex v, V2F *v2f, int i){
     mat4 M_V = view * model;
     mat3 id_M = mat3(transpose(inverse(M_V)));
 
-    frag_pos[i] = vec3(model * v.position);
+    v2f->frag_pos[i] = vec3(model * v.position);
+    //frag_pos[i] = vec3(model * v.position);
 
     vec3 normal = id_M * v.normal;
     vec3 tangent = id_M * vec3(v.tangent);
@@ -24,13 +29,15 @@ vertex Shader::EvaluateVertex(vertex v, int i){
         normal.x, normal.y, normal.z
     );
 
-    light_info->CalculateTangentLightDir(frag_pos[i], TBN, i);
-    tangent_view_dir[i] = TBN * (cam_pos - frag_pos[i]);
+    light_info->CalculateTangentLightDir(v2f->frag_pos[i], TBN, i);
+    tangent_view_dir[i] = TBN * (cam_pos - v2f->frag_pos[i]);
+    //light_info->CalculateTangentLightDir(frag_pos[i], TBN, i);
+    //tangent_view_dir[i] = TBN * (cam_pos - frag_pos[i]);
 
     return vertex(proj * M_V * v.position, normal, v.uv);
 }
 
-Triangle3D Shader::EvaluateTriangle(Triangle3D tri){
+Triangle3D Shader::EvaluateTriangle(Triangle3D tri, V2F *v2f){
     mat4 M_V = view * model;
     mat4 M_V_P = proj * M_V;
     mat3 id_M = mat3(transpose(inverse(model)));
@@ -38,7 +45,8 @@ Triangle3D Shader::EvaluateTriangle(Triangle3D tri){
     Triangle3D result = Triangle3D();
 
     for (int i = 0; i < 3; i++){
-        frag_pos[i] = vec3(model * tri.vertices[i].position);
+        v2f->frag_pos[i] = vec3(model * tri.vertices[i].position);
+        //frag_pos[i] = vec3(model * tri.vertices[i].position);
 
         vec3 normal = id_M * tri.vertices[i].normal;
         vec3 tangent = id_M * vec3(tri.vertices[i].tangent);
@@ -49,8 +57,10 @@ Triangle3D Shader::EvaluateTriangle(Triangle3D tri){
             normal.x, normal.y, normal.z
         );
 
-        light_info->CalculateTangentLightDir(frag_pos[i], TBN, i);
-        tangent_view_dir[i] = TBN * (cam_pos - frag_pos[i]);
+        light_info->CalculateTangentLightDir(v2f->frag_pos[i], TBN, i);
+        tangent_view_dir[i] = TBN * (cam_pos - v2f->frag_pos[i]);
+        //light_info->CalculateTangentLightDir(frag_pos[i], TBN, i);
+        //tangent_view_dir[i] = TBN * (cam_pos - frag_pos[i]);
 
         result.vertices[i].position = M_V_P * tri.vertices[i].position;
         result.vertices[i].normal = normal;
@@ -61,7 +71,7 @@ Triangle3D Shader::EvaluateTriangle(Triangle3D tri){
 }
 
 NormalShader::NormalShader() {}
-vec3 NormalShader::EvaluateFragment(vertex2D v){
+vec3 NormalShader::EvaluateFragment(vertex2D v, V2F *v2f){
     return v.normal;
 }
 
@@ -72,7 +82,7 @@ MaterialShader::MaterialShader(vec3 ambient, vec3 diffuse, vec3 specular, float 
     this->specular = specular;
     this->shininess = shininess;
 }
-vec3 MaterialShader::EvaluateFragment(vertex2D v){
+vec3 MaterialShader::EvaluateFragment(vertex2D v, V2F *v2f){
     return vec3(1, 1, 1) * ambient * diffuse * specular;
 }
 
@@ -99,7 +109,7 @@ BlinnPhongShader::BlinnPhongShader(vec3 tint, float metallic, float smoothness){
     this->metallic = metallic;
     this->smoothness = smoothness;
 }
-vec3 BlinnPhongShader::EvaluateFragment(vertex2D v){
+vec3 BlinnPhongShader::EvaluateFragment(vertex2D v, V2F *v2f){
     vec3 albedo = tint;
     if (!map_albedo->IsEmpty()) albedo = map_albedo->sample(v.uv);
 
@@ -142,7 +152,7 @@ TextureShader::TextureShader() {}
 TextureShader::TextureShader(Texture *tex){
     this->tex = tex;
 }
-vec3 TextureShader::EvaluateFragment(vertex2D v){
+vec3 TextureShader::EvaluateFragment(vertex2D v, V2F *v2f){
     return tex->sample(v.uv);
 }
 
@@ -152,7 +162,7 @@ ColorShader::ColorShader() {
 ColorShader::ColorShader(vec3 col){
     this->col = col;
 }
-vec3 ColorShader::EvaluateFragment(vertex2D v){
+vec3 ColorShader::EvaluateFragment(vertex2D v, V2F *v2f){
     return col;
 }
 
@@ -160,10 +170,10 @@ SkyboxShader::SkyboxShader() {}
 SkyboxShader::SkyboxShader(CubeMap *cubemap) {
     this->cubemap = cubemap;
 }
-vertex SkyboxShader::EvaluateVertex(vertex v, int i){
+vertex SkyboxShader::EvaluateVertex(vertex v, V2F *v2f, int i){
     return vertex(proj * view * v.position, vec3(v.position), v.uv);
 }
-Triangle3D SkyboxShader::EvaluateTriangle(Triangle3D tri){
+Triangle3D SkyboxShader::EvaluateTriangle(Triangle3D tri, V2F *v2f){
     Triangle3D result = Triangle3D();
 
     for (int i = 0; i < 3; i++){
@@ -174,7 +184,7 @@ Triangle3D SkyboxShader::EvaluateTriangle(Triangle3D tri){
 
     return result;
 }
-vec3 SkyboxShader::EvaluateFragment(vertex2D v){
+vec3 SkyboxShader::EvaluateFragment(vertex2D v, V2F *v2f){
     return cubemap->sample(v.normal);
 }
 

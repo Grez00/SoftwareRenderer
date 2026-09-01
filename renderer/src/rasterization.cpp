@@ -59,16 +59,20 @@ vec4 GetBoundingBox(Triangle2D tri, int w, int h){
     int xmax = ceil((po.x > p1.x) ? ((po.x > p2.x) ? po.x : p2.x) : ((p1.x > p2.x) ? p1.x : p2.x));
     int ymax = ceil((po.y > p1.y) ? ((po.y > p2.y) ? po.y : p2.y) : ((p1.y > p2.y) ? p1.y : p2.y));
 
-    xmin = std::min(std::max(xmin, 0), w-1);
-    ymin = std::min(std::max(ymin, 0), h-1);
-    xmax = std::min(std::max(xmax, 0), w-1);
-    ymax = std::min(std::max(ymax, 0), h-1);
+    //xmin = std::min(std::max(xmin, 0), w-1);
+    //ymin = std::min(std::max(ymin, 0), h-1);
+    //xmax = std::min(std::max(xmax, 0), w-1);
+    //ymax = std::min(std::max(ymax, 0), h-1);
 
     return vec4(xmin, ymin, xmax, ymax);
 }
 
-void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader, bool depth_write){
+void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader, V2F *v2f, bool depth_write){
     vec4 bb = GetBoundingBox(tri, buffer->w, buffer->h);
+    int min_x = int(bb.x);
+    int min_y = int(bb.y);
+    int max_x = int(bb.z);
+    int max_y = int(bb.w);
 
     vec3 v0 = tri.vertices[0].position;
     vec3 v1 = tri.vertices[1].position;
@@ -81,8 +85,8 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader, bool
     vec2 uv_20_diff = tri.vertices[2].uv - tri.vertices[0].uv;
     vec3 normal_10_diff = tri.vertices[1].normal - tri.vertices[0].normal;
     vec3 normal_20_diff = tri.vertices[2].normal - tri.vertices[0].normal;
-    vec3 pos_10_diff = shader->frag_pos[1] - shader->frag_pos[0];
-    vec3 pos_20_diff = shader->frag_pos[2] - shader->frag_pos[0];
+    vec3 pos_10_diff = v2f->frag_pos[1] - v2f->frag_pos[0];
+    vec3 pos_20_diff = v2f->frag_pos[2] - v2f->frag_pos[0];
     vec3 view_dir_10_diff = shader->tangent_view_dir[1] - shader->tangent_view_dir[0];
     vec3 view_dir_20_diff = shader->tangent_view_dir[2] - shader->tangent_view_dir[0];
 
@@ -97,12 +101,12 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader, bool
     float w1_row = Edge(v2, v0, p);
     float w2_row = Edge(v0, v1, p);
 
-    for (int y = bb.y; y < bb.w; y++){
+    for (int y = min_y; y < max_y; y++){
         float w0 = w0_row;
         float w1 = w1_row;
         float w2 = w2_row;
 
-        for (int x = bb.x; x < bb.z; x++){
+        for (int x = min_x; x < max_x; x++){
             if (w0 >= 0.0f && w1 >= 0.0f && w2 >= 0.0f){
                 float b1 = w1*d_area;
                 float b2 = w2*d_area;
@@ -113,13 +117,13 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader, bool
 
                     vec2 uv = (tri.vertices[0].uv + uv_10_diff*b1 + uv_20_diff*b2);
                     vec3 normal = (tri.vertices[0].normal + normal_10_diff*b1 + normal_20_diff*b2);
-                    vec3 position = (shader->frag_pos[0] + pos_10_diff*b1 + pos_20_diff*b2);
+                    vec3 position = (v2f->frag_pos[0] + pos_10_diff*b1 + pos_20_diff*b2);
 
                     shader->interp_view_dir = (shader->tangent_view_dir[0] + view_dir_10_diff*b1 + view_dir_20_diff*b2);
                     shader->light_info->InterpolateLightDir(vec2(b1, b2));
                     
                     if (depth_write) buffer->SetDepthBuffer(x, y, depth);
-                    buffer->SetRenderBuffer(x, y, shader->EvaluateFragment(vertex2D(position, normal, uv)));
+                    buffer->SetRenderBuffer(x, y, shader->EvaluateFragment(vertex2D(position, normal, uv), v2f));
                 }
             }
 
@@ -134,7 +138,7 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader, bool
     }
 }
 
-void RasterizeLineLow(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
+void RasterizeLineLow(vec3 a, vec3 b, FrameBuffer *buffer, vec3 col){
     int dx = b.x - a.x;
     int dy = b.y - a.y;
 
@@ -150,9 +154,9 @@ void RasterizeLineLow(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
         float t = float(x)/b.x;
         float depth = a.z*(1-t) + b.z*t;
 
-        if (depth < buffer.ReadDepthBuffer(x, y)){
-            buffer.SetRenderBuffer(x, y, col);
-            buffer.SetDepthBuffer(x, y, depth);
+        if (depth < buffer->ReadDepthBuffer(x, y)){
+            buffer->SetRenderBuffer(x, y, col);
+            buffer->SetDepthBuffer(x, y, depth);
         }
         if (D > 0){
             y += deltay;
@@ -164,7 +168,7 @@ void RasterizeLineLow(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
     }
 }
 
-void RasterizeLineHigh(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
+void RasterizeLineHigh(vec3 a, vec3 b, FrameBuffer *buffer, vec3 col){
     int dx = b.x - a.x;
     int dy = b.y - a.y;
 
@@ -180,9 +184,9 @@ void RasterizeLineHigh(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
         float t = float(y)/b.y;
         float depth = a.z*(1-t) + b.z*t;
 
-        if (depth < buffer.ReadDepthBuffer(x, y)){
-            buffer.SetRenderBuffer(x, y, col);
-            buffer.SetDepthBuffer(x, y, depth);
+        if (depth < buffer->ReadDepthBuffer(x, y)){
+            buffer->SetRenderBuffer(x, y, col);
+            buffer->SetDepthBuffer(x, y, depth);
         }
         if (D > 0){
             x += deltax;
@@ -194,7 +198,7 @@ void RasterizeLineHigh(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
     }
 }
 
-void RasterizeLine(vec3 a, vec3 b, FrameBuffer buffer, vec3 col){
+void RasterizeLine(vec3 a, vec3 b, FrameBuffer *buffer, vec3 col){
     if (abs(b.y - a.y) < abs(b.x - a.x)){
         if (a.x > b.x){
             RasterizeLineLow(b, a, buffer, col);

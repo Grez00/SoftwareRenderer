@@ -12,6 +12,13 @@
 #include "mat3.h"
 #include "triangles.h"
 
+class V2F{
+    public:
+        vec3 *frag_pos;
+
+        V2F();
+};
+
 class Shader{
     public:
         // Scene info
@@ -24,7 +31,7 @@ class Shader{
         mat4 proj;
 
         // Vertex to Fragment attributes
-        vec3 *frag_pos;
+        //vec3 *frag_pos;
         vec3 *tangent_view_dir;
 
         // Interpolated attributes
@@ -32,16 +39,16 @@ class Shader{
 
         Shader();
 
-        virtual vec3 EvaluateFragment(vertex2D v);
-        virtual vertex EvaluateVertex(vertex v, int i);
-        virtual Triangle3D EvaluateTriangle(Triangle3D tri);
+        virtual vec3 EvaluateFragment(vertex2D v, V2F *v2f);
+        virtual vertex EvaluateVertex(vertex v, V2F *v2f, int i);
+        virtual Triangle3D EvaluateTriangle(Triangle3D tri, V2F *v2f);
 };
 
 class NormalShader : public Shader{
     public:
         NormalShader();
 
-        vec3 EvaluateFragment(vertex2D v) override;
+        vec3 EvaluateFragment(vertex2D v, V2F *v2f) override;
 };
 
 class MaterialShader : public Shader {
@@ -54,7 +61,7 @@ class MaterialShader : public Shader {
         MaterialShader();
         MaterialShader(vec3 ambient, vec3 diffuse, vec3 specular, float shininess);
 
-        vec3 EvaluateFragment(vertex2D v) override;
+        vec3 EvaluateFragment(vertex2D v, V2F *v2f) override;
 };
 
 class BlinnPhongShader : public Shader{
@@ -73,7 +80,7 @@ class BlinnPhongShader : public Shader{
         BlinnPhongShader(Texture *p_albedo, Texture *p_roughness, Texture *p_metallic, Texture *p_normal);
         BlinnPhongShader(vec3 tint, float metallic, float smoothness);
 
-        vec3 EvaluateFragment(vertex2D v) override;
+        vec3 EvaluateFragment(vertex2D v, V2F *v2f) override;
 };
 
 class TextureShader : public Shader{
@@ -83,7 +90,7 @@ class TextureShader : public Shader{
         TextureShader();
         TextureShader(Texture *tex);
 
-        vec3 EvaluateFragment(vertex2D v) override;
+        vec3 EvaluateFragment(vertex2D v, V2F *v2f) override;
 };
 
 class ColorShader : public Shader{
@@ -93,7 +100,7 @@ class ColorShader : public Shader{
         ColorShader();
         ColorShader(vec3 col);
 
-        vec3 EvaluateFragment(vertex2D v) override;
+        vec3 EvaluateFragment(vertex2D v, V2F *v2f) override;
 };
 
 class SkyboxShader : public Shader{
@@ -103,9 +110,9 @@ class SkyboxShader : public Shader{
         SkyboxShader();
         SkyboxShader(CubeMap *cubemap);
 
-        vertex EvaluateVertex(vertex v, int i) override;
-        Triangle3D EvaluateTriangle(Triangle3D tri) override;
-        vec3 EvaluateFragment(vertex2D v) override;
+        vertex EvaluateVertex(vertex v, V2F *v2f, int i) override;
+        Triangle3D EvaluateTriangle(Triangle3D tri, V2F *v2f) override;
+        vec3 EvaluateFragment(vertex2D v, V2F *v2f) override;
 };
 
 class ShaderStore{
