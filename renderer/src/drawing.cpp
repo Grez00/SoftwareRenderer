@@ -446,9 +446,10 @@ void DrawTriangleStrips(vertex vertices[], int vert_count, RenderInfo render_inf
 */
 
 void DrawMesh(Mesh mesh, FrameBuffer *buffer, Shader *shader, bool depth_write){
-    V2F v2f;
-    #pragma omp parallel for private(v2f) schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < mesh.index_count; i+=3){
+        V2F v2f = V2F(shader->light_info->num_lights);
+
         DrawTriangle(
             Triangle3D(
                 vertex(mesh.positions[int(mesh.indices[i].x)], mesh.normals[int(mesh.indices[i].z)], mesh.uvs[int(mesh.indices[i].y)]), 
