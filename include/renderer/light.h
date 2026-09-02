@@ -43,16 +43,16 @@ class SceneLighting{
         int num_lights;
 
         // Vertex to fragment light attributes
-        vec3 **tangent_light_dir;
+        //vec3 **tangent_light_dir;
 
         // Interpolated light attributes
-        vec3 *interp_light_dir;
+        //vec3 *interp_light_dir;
 
         SceneLighting();
         SceneLighting(dirlight *dir_lights, pointlight *p_lights, int num_dir_lights, int num_p_lights);
 
-        void CalculateTangentLightDir(vec3 pos, mat3 TBN, int i);
-        void InterpolateLightDir(vec2 uv);
+        void CalculateTangentLightDir(vec3 **tangent_light_dir, vec3 pos, mat3 TBN, int i);
+        void InterpolateLightDir(vec3 **tangent_light_dir, vec3 *interp_light_dir, vec2 uv);
 };
 
 #endif

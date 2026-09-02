@@ -87,8 +87,8 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader, V2F 
     vec3 normal_20_diff = tri.vertices[2].normal - tri.vertices[0].normal;
     vec3 pos_10_diff = v2f->frag_pos[1] - v2f->frag_pos[0];
     vec3 pos_20_diff = v2f->frag_pos[2] - v2f->frag_pos[0];
-    vec3 view_dir_10_diff = shader->tangent_view_dir[1] - shader->tangent_view_dir[0];
-    vec3 view_dir_20_diff = shader->tangent_view_dir[2] - shader->tangent_view_dir[0];
+    vec3 view_dir_10_diff = v2f->tangent_view_dir[1] - v2f->tangent_view_dir[0];
+    vec3 view_dir_20_diff = v2f->tangent_view_dir[2] - v2f->tangent_view_dir[0];
 
     float d_area = 1.0f/Edge(v1, v2, vec2(v0));
 
@@ -119,8 +119,8 @@ void RasterizeTriangle(Triangle2D tri, FrameBuffer *buffer, Shader *shader, V2F 
                     vec3 normal = (tri.vertices[0].normal + normal_10_diff*b1 + normal_20_diff*b2);
                     vec3 position = (v2f->frag_pos[0] + pos_10_diff*b1 + pos_20_diff*b2);
 
-                    shader->interp_view_dir = (shader->tangent_view_dir[0] + view_dir_10_diff*b1 + view_dir_20_diff*b2);
-                    shader->light_info->InterpolateLightDir(vec2(b1, b2));
+                    v2f->interp_view_dir = (v2f->tangent_view_dir[0] + view_dir_10_diff*b1 + view_dir_20_diff*b2);
+                    shader->light_info->InterpolateLightDir(v2f->tangent_light_dir, v2f->interp_light_dir, vec2(b1, b2));
                     
                     if (depth_write) buffer->SetDepthBuffer(x, y, depth);
                     buffer->SetRenderBuffer(x, y, shader->EvaluateFragment(vertex2D(position, normal, uv), v2f));

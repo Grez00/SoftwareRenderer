@@ -2,11 +2,22 @@
 
 V2F::V2F() {
     frag_pos = new vec3[3];
+    tangent_view_dir = new vec3[3];
+}
+V2F::V2F(int num_lights){
+    frag_pos = new vec3[3];
+    tangent_view_dir = new vec3[3];
+
+    tangent_light_dir = new vec3*[num_lights];
+    for (int i = 0; i < num_lights; i++){
+        tangent_light_dir[i] = new vec3[3];
+    }
+    interp_light_dir = new vec3[num_lights];
 }
 
 Shader::Shader() {
     //frag_pos = new vec3[3];
-    tangent_view_dir = new vec3[3];
+    //tangent_view_dir = new vec3[3];
 }
 
 vec3 Shader::EvaluateFragment(vertex2D v, V2F *v2f){
@@ -29,8 +40,8 @@ vertex Shader::EvaluateVertex(vertex v, V2F *v2f, int i){
         normal.x, normal.y, normal.z
     );
 
-    light_info->CalculateTangentLightDir(v2f->frag_pos[i], TBN, i);
-    tangent_view_dir[i] = TBN * (cam_pos - v2f->frag_pos[i]);
+    light_info->CalculateTangentLightDir(v2f->tangent_light_dir, v2f->frag_pos[i], TBN, i);
+    v2f->tangent_view_dir[i] = TBN * (cam_pos - v2f->frag_pos[i]);
     //light_info->CalculateTangentLightDir(frag_pos[i], TBN, i);
     //tangent_view_dir[i] = TBN * (cam_pos - frag_pos[i]);
 
@@ -57,8 +68,8 @@ Triangle3D Shader::EvaluateTriangle(Triangle3D tri, V2F *v2f){
             normal.x, normal.y, normal.z
         );
 
-        light_info->CalculateTangentLightDir(v2f->frag_pos[i], TBN, i);
-        tangent_view_dir[i] = TBN * (cam_pos - v2f->frag_pos[i]);
+        light_info->CalculateTangentLightDir(v2f->tangent_light_dir, v2f->frag_pos[i], TBN, i);
+        v2f->tangent_view_dir[i] = TBN * (cam_pos - v2f->frag_pos[i]);
         //light_info->CalculateTangentLightDir(frag_pos[i], TBN, i);
         //tangent_view_dir[i] = TBN * (cam_pos - frag_pos[i]);
 
@@ -128,10 +139,10 @@ vec3 BlinnPhongShader::EvaluateFragment(vertex2D v, V2F *v2f){
         normal = map_normal->sample(v.uv);
 
         for (int i = 0; i < light_info->num_dir_lights; i++){
-            col += light_info->dir_lights[i].EvaluateTangentSpace(normal, light_info->interp_light_dir[i], interp_view_dir, albedo, specular, smoothness_value * 100.0f, metallic_value);
+            col += light_info->dir_lights[i].EvaluateTangentSpace(normal, v2f->interp_light_dir[i], v2f->interp_view_dir, albedo, specular, smoothness_value * 100.0f, metallic_value);
         }
         for (int i = light_info->num_dir_lights; i < light_info->num_lights; i++){
-            col += light_info->p_lights[i-light_info->num_dir_lights].EvaluateTangentSpace(normal, light_info->interp_light_dir[i], interp_view_dir, albedo, specular, smoothness_value * 100.0f, metallic_value);
+            col += light_info->p_lights[i-light_info->num_dir_lights].EvaluateTangentSpace(normal, v2f->interp_light_dir[i], v2f->interp_view_dir, albedo, specular, smoothness_value * 100.0f, metallic_value);
         }
     }
     else{
@@ -267,6 +278,7 @@ void ShaderStore::Add(Shader *mat, const std::string &name){
 }
 
 void ShaderStore::SetSceneInfo(mat4 model, mat4 view, mat4 proj, vec3 cam_pos, SceneLighting *light_info){
+    num_lights = light_info->num_lights;
     for (auto const &[name, shader] : shaders){
         shader->model = model;
         shader->view = view;

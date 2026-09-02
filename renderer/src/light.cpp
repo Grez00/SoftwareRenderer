@@ -85,11 +85,11 @@ SceneLighting::SceneLighting(){
     num_p_lights = 0;
     num_lights = 0;
 
-    this->tangent_light_dir = new vec3*[num_lights];
-    for (int i = 0; i < num_lights; i++){
-        this->tangent_light_dir[i] = new vec3[3];
-    }
-    this->interp_light_dir = new vec3[num_lights];
+    //this->tangent_light_dir = new vec3*[num_lights];
+    //for (int i = 0; i < num_lights; i++){
+        //this->tangent_light_dir[i] = new vec3[3];
+    //}
+    //this->interp_light_dir = new vec3[num_lights];
 }
 SceneLighting::SceneLighting(dirlight *dir_lights, pointlight *p_lights, int num_dir_lights, int num_p_lights){
     this->dir_lights = dir_lights;
@@ -98,13 +98,13 @@ SceneLighting::SceneLighting(dirlight *dir_lights, pointlight *p_lights, int num
     this->num_p_lights = num_p_lights;
     this->num_lights = num_dir_lights + num_p_lights;
 
-    this->tangent_light_dir = new vec3*[num_lights];
-    for (int i = 0; i < num_lights; i++){
-        this->tangent_light_dir[i] = new vec3[3];
-    }
-    this->interp_light_dir = new vec3[num_lights];
+    //this->tangent_light_dir = new vec3*[num_lights];
+    //for (int i = 0; i < num_lights; i++){
+        //this->tangent_light_dir[i] = new vec3[3];
+    //}
+    //this->interp_light_dir = new vec3[num_lights];
 }
-void SceneLighting::CalculateTangentLightDir(vec3 pos, mat3 TBN, int i){
+void SceneLighting::CalculateTangentLightDir(vec3 **tangent_light_dir, vec3 pos, mat3 TBN, int i){
     for (int j = 0; j < num_dir_lights; j++){
         tangent_light_dir[j][i] = TBN * dir_lights[j].direction;
     }
@@ -112,7 +112,7 @@ void SceneLighting::CalculateTangentLightDir(vec3 pos, mat3 TBN, int i){
         tangent_light_dir[j][i] = TBN * (p_lights[j-num_dir_lights].position - pos);
     }
 }
-void SceneLighting::InterpolateLightDir(vec2 uv){
+void SceneLighting::InterpolateLightDir(vec3 **tangent_light_dir, vec3 *interp_light_dir, vec2 uv){
     for (int i = 0; i < num_lights; i++){
         interp_light_dir[i] = 
             tangent_light_dir[i][0] + 

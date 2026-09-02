@@ -15,8 +15,14 @@
 class V2F{
     public:
         vec3 *frag_pos;
+        vec3 *tangent_view_dir;
+        vec3 interp_view_dir;
+
+        vec3 **tangent_light_dir;
+        vec3 *interp_light_dir;
 
         V2F();
+        V2F(int num_lights);
 };
 
 class Shader{
@@ -32,10 +38,10 @@ class Shader{
 
         // Vertex to Fragment attributes
         //vec3 *frag_pos;
-        vec3 *tangent_view_dir;
+        //vec3 *tangent_view_dir;
 
         // Interpolated attributes
-        vec3 interp_view_dir;
+        //vec3 interp_view_dir;
 
         Shader();
 
@@ -117,6 +123,8 @@ class SkyboxShader : public Shader{
 
 class ShaderStore{
     public:
+        int num_lights;
+
         ShaderStore();
         ShaderStore(std::map<std::string, Shader*> shaders);
         Shader* Get(const std::string &name);

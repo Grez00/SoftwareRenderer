@@ -465,11 +465,14 @@ void DrawMesh(Mesh mesh, FrameBuffer *buffer, Shader *shader, bool depth_write){
 
 void DrawModel(Model model, FrameBuffer *buffer, bool depth_write){
     Shader *shader = new Shader();
-    V2F v2f;
-    #pragma omp parallel for private(shader) private(v2f) schedule(dynamic) 
+    #pragma omp parallel for private(shader) schedule(dynamic) 
     for (int i = 0; i < model.mesh->index_count; i+=3){
-        if (model.index_to_mat.find(i) != model.index_to_mat.end()){
-            shader = model.shaders->Get(model.index_to_mat[i]);
+        V2F v2f = V2F(model.shaders->num_lights);
+        
+        for (auto const &[index, name] : model.index_to_mat){
+            if (index <= i){
+                shader = model.shaders->Get(name);
+            }
         }
 
         DrawTriangle(

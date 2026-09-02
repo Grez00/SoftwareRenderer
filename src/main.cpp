@@ -242,12 +242,12 @@ int main(int argc, char *argv[]){
         color_shader.proj = proj;
         //color_shader.model = cube_model;
 
-        skybox_shader.view = mat3tomat4(mat3(view));
-        skybox_shader.proj = proj;
-        DrawMesh(skybox_cube, &render_buffer, &color_shader, false);
+        //skybox_shader.view = mat3tomat4(mat3(view));
+        //skybox_shader.proj = proj;
+        //DrawMesh(skybox_cube, &render_buffer, &color_shader, false);
 
-        //painted_sphere.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
-        //DrawModel(painted_sphere, &render_buffer);
+        painted_sphere.shaders->SetSceneInfo(cube_model, view, proj, secondary_cam.position, &lighting_info);
+        DrawModel(painted_sphere, &render_buffer);
 
         //DrawMesh(king, &render_buffer, &bp_frag);
         //DrawMeshWireframe(sphere_mesh, &render_buffer, proj, view * cube_model, vec3(0, 1, 0));
